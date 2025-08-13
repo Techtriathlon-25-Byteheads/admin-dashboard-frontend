@@ -32,7 +32,7 @@ const sidebarItems: SidebarItem[] = [
   { icon: MessageSquare, label: 'Feedback', path: '/feedback', roles: ['admin', 'officer'] },
   { icon: Bot, label: 'AI Chatbot', path: '/chatbot', roles: ['admin'] },
   { icon: Bell, label: 'Notifications', path: '/notifications', roles: ['admin'] },
-  { icon: Shield, label: 'Security', path: '/security', roles: ['admin'] },
+//   { icon: Shield, label: 'Security', path: '/security', roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {
