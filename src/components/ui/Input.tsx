@@ -26,7 +26,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
         ref={ref}
         className={`
           block w-full rounded-md border-gray-300 shadow-sm 
-          focus:border-[#4C9B6F] focus:ring-[#4C9B6F] focus:ring-1
+          focus:border-primary-500 focus:ring-primary-500 focus:ring-1
           disabled:bg-gray-100 disabled:cursor-not-allowed
           ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
           ${className}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { DivideIcon as LucideIcon } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { Card } from './Card';
 
 interface StatCardProps {
@@ -21,8 +21,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   color = 'green'
 }) => {
   const colorClasses = {
-    green: 'bg-[#4C9B6F] text-white',
-    blue: 'bg-[#569099] text-white',
+    green: 'bg-primary-500 text-white',
+    blue: 'bg-secondary-600 text-white',
     orange: 'bg-orange-500 text-white',
     red: 'bg-red-500 text-white',
   };

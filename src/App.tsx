@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AppRoutes } from './routes/AppRoutes';
+import { PRIMARY_COLOR } from './constants/theme';
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
             },
             success: {
               style: {
-                background: '#4C9B6F',
+                background: PRIMARY_COLOR,
               },
             },
             error: {

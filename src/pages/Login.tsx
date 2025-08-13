@@ -60,13 +60,13 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#4C9B6F] to-[#A8D4B9] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-[#4C9B6F] to-[#A8D4B9] rounded-xl flex items-center justify-center mb-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center mb-4">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#1A5E3A] mb-2">Government Portal</h1>
+          <h1 className="text-2xl font-bold text-primary-600 mb-2">Government Portal</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 
@@ -108,7 +108,7 @@ export const Login: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <a href="#" className="text-sm text-[#4C9B6F] hover:text-[#1A5E3A]">
+          <a href="#" className="text-sm text-primary-500 hover:text-primary-600">
             Forgot your password?
           </a>
         </div>

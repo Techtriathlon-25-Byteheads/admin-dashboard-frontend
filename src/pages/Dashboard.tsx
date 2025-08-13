@@ -5,15 +5,15 @@ import {
   Building2, 
   Clock, 
   TrendingUp,
-  AlertCircle,
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
+import { PRIMARY_COLOR, SECONDARY_ACCENT } from '../constants/theme';
 
 const mockAnalytics = {
   totalAppointments: 1245,
@@ -51,8 +51,6 @@ const mockAnalytics = {
   ],
 };
 
-const COLORS = ['#4C9B6F', '#569099', '#A8D4B9', '#3F838E', '#1A5E3A'];
-
 export const Dashboard: React.FC = () => {
   const { analytics, setAnalytics, setLoading } = useAppStore();
   const user = useAuthStore((state) => state.user);
@@ -71,7 +69,7 @@ export const Dashboard: React.FC = () => {
   if (!analytics) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4C9B6F]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -80,7 +78,7 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1A5E3A]">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-primary-600">Dashboard</h1>
           <p className="text-gray-600 mt-1">
             Welcome back, {user?.name}. Here's what's happening today.
           </p>
@@ -137,7 +135,7 @@ export const Dashboard: React.FC = () => {
                 <XAxis dataKey="hour" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#4C9B6F" />
+                <Bar dataKey="count" fill={PRIMARY_COLOR} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -155,7 +153,7 @@ export const Dashboard: React.FC = () => {
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="avgTime" stroke="#4C9B6F" strokeWidth={2} />
+                <Line type="monotone" dataKey="avgTime" stroke={PRIMARY_COLOR} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -176,7 +174,7 @@ export const Dashboard: React.FC = () => {
                   <XAxis dataKey="department" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#569099" />
+                  <Bar dataKey="count" fill={SECONDARY_ACCENT} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -214,7 +212,7 @@ export const Dashboard: React.FC = () => {
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5 text-[#4C9B6F]" />
+                  <TrendingUp className="h-5 w-5 text-primary-500" />
                   <span className="text-sm">Satisfaction</span>
                 </div>
                 <span className="font-semibold">{analytics.satisfactionScore}/5</span>

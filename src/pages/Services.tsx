@@ -161,7 +161,7 @@ export const Services: React.FC = () => {
       header: 'Service Name',
       render: (service: Service) => (
         <div className="flex items-center space-x-2">
-          <FileText className="h-5 w-5 text-[#4C9B6F]" />
+          <FileText className="h-5 w-5 text-primary-500" />
           <span className="font-medium">{service.name}</span>
         </div>
       ),
@@ -231,7 +231,7 @@ export const Services: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1A5E3A]">Services</h1>
+          <h1 className="text-2xl font-bold text-primary-600">Services</h1>
           <p className="text-gray-600 mt-1">Manage government services and their requirements</p>
         </div>
         <Button
@@ -298,7 +298,7 @@ export const Services: React.FC = () => {
             <textarea
               {...register('requirements_json')}
               rows={4}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4C9B6F] focus:ring-[#4C9B6F] focus:ring-1"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 focus:ring-1"
               placeholder={`National ID Card\nBirth Certificate\nPhotographs\nApplication Form`}
             />
             <p className="text-xs text-gray-500">

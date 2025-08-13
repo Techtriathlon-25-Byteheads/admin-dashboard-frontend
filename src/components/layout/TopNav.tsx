@@ -21,7 +21,7 @@ export const TopNav: React.FC = () => {
             <input
               type="text"
               placeholder="Search..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-[#4C9B6F] focus:border-[#4C9B6F]"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
         </div>
@@ -38,7 +38,7 @@ export const TopNav: React.FC = () => {
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-2"
             >
-              <div className="w-8 h-8 bg-[#4C9B6F] rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
                 <User className="h-4 w-4 text-white" />
               </div>
               <span className="text-sm font-medium text-gray-700">{user?.name}</span>
@@ -49,7 +49,7 @@ export const TopNav: React.FC = () => {
                 <div className="p-3 border-b border-gray-200">
                   <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                   <p className="text-xs text-gray-600">{user?.email}</p>
-                  <p className="text-xs text-[#4C9B6F] capitalize">{user?.role}</p>
+                  <p className="text-xs text-primary-500 capitalize">{user?.role}</p>
                 </div>
                 <div className="p-1">
                   <button className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">

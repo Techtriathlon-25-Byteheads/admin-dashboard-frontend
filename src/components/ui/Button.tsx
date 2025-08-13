@@ -20,10 +20,10 @@ export const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   
   const variants = {
-    primary: 'bg-[#4C9B6F] text-white hover:bg-[#1A5E3A] focus-visible:ring-[#4C9B6F]',
-    secondary: 'bg-[#A8D4B9] text-[#1A5E3A] hover:bg-[#4C9B6F] hover:text-white focus-visible:ring-[#A8D4B9]',
-    outline: 'border border-[#4C9B6F] text-[#4C9B6F] hover:bg-[#4C9B6F] hover:text-white focus-visible:ring-[#4C9B6F]',
-    ghost: 'text-[#4C9B6F] hover:bg-[#F2F2F2] focus-visible:ring-[#4C9B6F]',
+    primary: 'bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500',
+    secondary: 'bg-secondary-500 text-primary-600 hover:bg-primary-500 hover:text-white focus-visible:ring-secondary-500',
+    outline: 'border border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white focus-visible:ring-primary-500',
+    ghost: 'text-primary-500 hover:bg-accent-light focus-visible:ring-primary-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600',
   };
 

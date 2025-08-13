@@ -116,7 +116,7 @@ export const Departments: React.FC = () => {
       header: 'Department Name',
       render: (dept: Department) => (
         <div className="flex items-center space-x-2">
-          <Building2 className="h-5 w-5 text-[#4C9B6F]" />
+          <Building2 className="h-5 w-5 text-primary-500" />
           <span className="font-medium">{dept.name}</span>
         </div>
       ),
@@ -159,7 +159,7 @@ export const Departments: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1A5E3A]">Departments</h1>
+          <h1 className="text-2xl font-bold text-primary-600">Departments</h1>
           <p className="text-gray-600 mt-1">Manage government departments and their services</p>
         </div>
         <Button
@@ -209,7 +209,7 @@ export const Departments: React.FC = () => {
               rows={3}
               className={`
                 block w-full rounded-md border-gray-300 shadow-sm 
-                focus:border-[#4C9B6F] focus:ring-[#4C9B6F] focus:ring-1
+                focus:border-primary-500 focus:ring-primary-500 focus:ring-1
                 ${errors.description ? 'border-red-300' : ''}
               `}
               placeholder="Describe the department's services and responsibilities"

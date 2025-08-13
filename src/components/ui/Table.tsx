@@ -17,7 +17,7 @@ export function Table<T extends { id: string }>({ data, columns, loading = false
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4C9B6F] mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading...</p>
         </div>
       </div>

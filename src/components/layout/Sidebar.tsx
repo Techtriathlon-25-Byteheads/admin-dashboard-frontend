@@ -46,11 +46,11 @@ export const Sidebar: React.FC = () => {
     <div className="bg-white border-r border-gray-200 w-64 min-h-screen">
       <div className="p-6">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-[#4C9B6F] to-[#A8D4B9] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#1A5E3A]">Gov Portal</h1>
+            <h1 className="text-lg font-bold text-primary-600">Gov Portal</h1>
             <p className="text-xs text-gray-600">{user?.role === 'admin' ? 'Admin Panel' : 'Officer Portal'}</p>
           </div>
         </div>
@@ -67,8 +67,8 @@ export const Sidebar: React.FC = () => {
                   className={({ isActive }) =>
                     `flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#4C9B6F] text-white'
-                        : 'text-gray-700 hover:bg-[#F2F2F2] hover:text-[#1A5E3A]'
+                        ? 'bg-primary-500 text-white'
+                        : 'text-gray-700 hover:bg-accent-light hover:text-primary-600'
                     }`
                   }
                 >
