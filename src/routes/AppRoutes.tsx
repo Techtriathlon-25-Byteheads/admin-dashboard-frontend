@@ -6,6 +6,7 @@ import { Login } from '../pages/Login';
 import { Dashboard } from '../pages/Dashboard';
 import { Departments } from '../pages/Departments';
 import { Services } from '../pages/Services';
+import { Appointments } from '../pages/Appointments';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -66,6 +67,15 @@ export const AppRoutes: React.FC = () => {
             <AdminRoute>
               <Services />
             </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/appointments"
+        element={
+          <ProtectedRoute>
+            <Appointments />
           </ProtectedRoute>
         }
       />
