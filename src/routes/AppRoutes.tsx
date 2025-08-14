@@ -7,6 +7,8 @@ import { Dashboard } from '../pages/Dashboard';
 import { Departments } from '../pages/Departments';
 import { Services } from '../pages/Services';
 import { Appointments } from '../pages/Appointments';
+import { Citizens } from '../pages/Citizens';
+import { Feedback } from '../pages/Feedback';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -76,6 +78,26 @@ export const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Appointments />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/citizens"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Citizens />
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/feedback"
+        element={
+          <ProtectedRoute>
+            <Feedback />
           </ProtectedRoute>
         }
       />
