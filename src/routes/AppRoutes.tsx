@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const user = useAuthStore((state) => state.user);
   
-  if (user?.role !== 'admin') {
+  if (user?.role !== 'SUPER_ADMIN') {
     return <Navigate to="/dashboard" replace />;
   }
 

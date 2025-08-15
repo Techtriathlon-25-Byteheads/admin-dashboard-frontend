@@ -6,6 +6,7 @@ import { Building2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -35,22 +36,27 @@ export const Login: React.FC = () => {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      // Mock login - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.adminLogin(data.email, data.password);
       
-      // Mock user data based on email
-      const mockUser = {
-        id: '1',
-        name: data.email.includes('admin') ? 'Admin User' : 'Officer User',
-        email: data.email,
-        role: data.email.includes('admin') ? 'admin' as const : 'officer' as const,
-        status: 'active' as const,
-        department_id: data.email.includes('officer') ? '1' : undefined,
-      };
-
-      login(mockUser, 'mock-jwt-token');
-      toast.success('Login successful');
-      window.location.href = '/dashboard';
+      if (response.error) {
+        toast.error(response.error);
+        return;
+      }
+      
+      if (response.data && 'token' in response.data) {
+        // Create user object from email (since API only returns token)
+        const user = {
+          email: data.email,
+          firstName: data.email.includes('superadmin') ? 'Super' : 'Admin',
+          lastName: 'User',
+          role: (data.email.includes('superadmin') ? 'SUPER_ADMIN' : 'ADMIN') as 'SUPER_ADMIN' | 'ADMIN',
+          isActive: true,
+        };
+        
+        login(user, response.data.token);
+        toast.success('Login successful');
+        window.location.href = '/dashboard';
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Login failed. Please try again.');
@@ -77,7 +83,7 @@ export const Login: React.FC = () => {
             id="email"
             {...register('email')}
             error={errors.email?.message || undefined}
-            placeholder="admin@gov.lk or officer@gov.lk"
+            placeholder="superadmin@gov.lk"
           />
 
           <div className="relative">
@@ -114,9 +120,8 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="mt-8 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
-          <p className="font-medium mb-2">Demo Accounts:</p>
-          <p><strong>Admin:</strong> admin@gov.lk / password123</p>
-          <p><strong>Officer:</strong> officer@gov.lk / password123</p>
+          <p className="font-medium mb-2">Demo Account:</p>
+          <p><strong>Super Admin:</strong> superadmin@gov.lk / password123</p>
         </div>
       </div>
     </div>

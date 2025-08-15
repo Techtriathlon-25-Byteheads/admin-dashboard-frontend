@@ -1,10 +1,12 @@
 export interface User {
-  id: string;
+  userId?: string;
   email: string;
-  name: string;
-  role: 'admin' | 'officer';
-  department_id?: string;
-  status: 'active' | 'inactive';
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  role: 'ADMIN' | 'SUPER_ADMIN';
+  assignedServices?: string[];
+  isActive: boolean;
 }
 
 export interface Department {
@@ -97,14 +99,10 @@ export interface ChatbotTraining {
 }
 
 export interface Analytics {
-  totalAppointments: number;
-  totalDepartments: number;
-  totalOfficers: number;
-  totalCitizens: number;
-  averageWaitTime: number;
-  satisfactionScore: number;
-  noShowRate: number;
-  peakHours: { hour: string; count: number }[];
-  departmentLoad: { department: string; count: number }[];
-  processingTimes: { date: string; avgTime: number }[];
+  appointmentStats: { totalThisMonth: number; percentageChange: number };
+  activeServiceStats: { totalThisMonth: number; percentageChange: number };
+  officerStats: { totalOfficers: number; percentageChange: number };
+  peakHoursToday: { time: string; count: number }[];
+  departmentLoad: { departmentName: string; count: number }[];
+  quickStatsToday: { completed: number; pending: number; noShows: number; cancelled: number };
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, User, LogOut, Settings } from 'lucide-react';
+import { Search, User, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/Button';
 
@@ -27,10 +27,6 @@ export const TopNav: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm">
-            <Bell className="h-5 w-5" />
-          </Button>
-
           <div className="relative">
             <Button
               variant="ghost"
@@ -41,15 +37,25 @@ export const TopNav: React.FC = () => {
               <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
                 <User className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+              <span className="text-sm font-medium text-gray-700">
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName} ${user.lastName}` 
+                  : user?.name || 'User'}
+              </span>
             </Button>
 
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                 <div className="p-3 border-b border-gray-200">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user?.name || 'User'}
+                  </p>
                   <p className="text-xs text-gray-600">{user?.email}</p>
-                  <p className="text-xs text-primary-500 capitalize">{user?.role}</p>
+                  <p className="text-xs text-primary-500 capitalize">
+                    {user?.role?.replace('_', ' ').toLowerCase()}
+                  </p>
                 </div>
                 <div className="p-1">
                   <button className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
