@@ -9,6 +9,8 @@ import { Services } from '../pages/Services';
 import { Appointments } from '../pages/Appointments';
 import { Citizens } from '../pages/Citizens';
 import { Feedback } from '../pages/Feedback';
+import { AppointmentDetails } from '../pages/AppointmentDetails';
+import { DocumentView } from '../pages/DocumentView';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -78,6 +80,24 @@ export const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Appointments />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/appointments/:appointmentId"
+        element={
+          <ProtectedRoute>
+            <AppointmentDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/appointments/:appointmentId/documents/:documentId"
+        element={
+          <ProtectedRoute>
+            <DocumentView />
           </ProtectedRoute>
         }
       />

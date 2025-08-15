@@ -54,9 +54,25 @@ export interface Appointment {
   documents_json: string;
   qr_code: string;
   reference_no: string;
+  appointment_remarks?: string;
   citizen?: Citizen;
   service?: Service;
   officer?: Officer;
+  documents?: Document[];
+}
+
+export interface Document {
+  id: string;
+  appointment_id: string;
+  document_name: string;
+  document_type: string;
+  file_url: string;
+  file_type: 'image' | 'pdf';
+  status: 'pending' | 'approved' | 'rejected';
+  remarks?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  uploaded_at: string;
 }
 
 export interface Feedback {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -153,6 +154,7 @@ const appointmentStats = {
 };
 
 export const Appointments: React.FC = () => {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'admin';
   
@@ -275,8 +277,7 @@ export const Appointments: React.FC = () => {
   };
 
   const handleViewAppointment = (appointment: AppointmentWithDetails) => {
-    setSelectedAppointment(appointment);
-    setIsViewModalOpen(true);
+    navigate(`/appointments/${appointment.id}`);
   };
 
   const handleEditAppointment = (appointment: AppointmentWithDetails) => {
