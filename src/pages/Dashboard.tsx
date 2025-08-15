@@ -112,17 +112,11 @@ export const Dashboard: React.FC = () => {
           color="orange"
         />
 
-        <StatCard
-          title="Avg Wait Time"
-          value={`${analytics.averageWaitTime} min`}
-          icon={Clock}
-          change={{ value: 3, type: 'decrease' }}
-          color="green"
-        />
+
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Peak Hours Chart */}
         <Card>
           <CardHeader>
@@ -137,24 +131,6 @@ export const Dashboard: React.FC = () => {
                 <Tooltip />
                 <Bar dataKey="count" fill={PRIMARY_COLOR} />
               </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Processing Times */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Average Processing Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.processingTimes}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="avgTime" stroke={PRIMARY_COLOR} strokeWidth={2} />
-              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

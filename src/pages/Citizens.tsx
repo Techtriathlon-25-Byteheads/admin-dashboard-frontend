@@ -13,11 +13,7 @@ import {
   MapPin,
   Calendar,
   FileText,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Star,
-  Shield
+  Star
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -180,7 +176,6 @@ export const Citizens: React.FC = () => {
   const [filteredCitizens, setFilteredCitizens] = useState<CitizenWithDetails[]>(mockCitizens);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [verificationFilter, setVerificationFilter] = useState('all');
   const [selectedCitizen, setSelectedCitizen] = useState<CitizenWithDetails | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -224,13 +219,8 @@ export const Citizens: React.FC = () => {
       filtered = filtered.filter(citizen => citizen.status === statusFilter);
     }
 
-    // Verification filter
-    if (verificationFilter !== 'all') {
-      filtered = filtered.filter(citizen => citizen.verificationStatus === verificationFilter);
-    }
-
     setFilteredCitizens(filtered);
-  }, [searchTerm, statusFilter, verificationFilter, citizens, isAdmin]);
+  }, [searchTerm, statusFilter, citizens, isAdmin]);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
@@ -241,33 +231,6 @@ export const Citizens: React.FC = () => {
         return `${baseClasses} bg-gray-100 text-gray-800`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
-    }
-  };
-
-  const getVerificationBadge = (status: string) => {
-    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'verified':
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case 'pending':
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'rejected':
-        return `${baseClasses} bg-red-100 text-red-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-    }
-  };
-
-  const getVerificationIcon = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'pending':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -329,8 +292,8 @@ export const Citizens: React.FC = () => {
         totalAppointments: 0,
         completedAppointments: 0,
         registrationDate: new Date().toISOString().split('T')[0],
-        verificationStatus: 'pending',
-        documentStatus: 'incomplete',
+        verificationStatus: 'verified',
+        documentStatus: 'complete',
         averageRating: 0
       };
       setCitizens(prev => [...prev, newCitizenData]);
@@ -344,16 +307,6 @@ export const Citizens: React.FC = () => {
       prev.map(citizen =>
         citizen.id === citizenId
           ? { ...citizen, status: newStatus }
-          : citizen
-      )
-    );
-  };
-
-  const handleVerificationUpdate = (citizenId: string, newStatus: 'verified' | 'pending' | 'rejected') => {
-    setCitizens(prev =>
-      prev.map(citizen =>
-        citizen.id === citizenId
-          ? { ...citizen, verificationStatus: newStatus }
           : citizen
       )
     );
@@ -407,12 +360,6 @@ export const Citizens: React.FC = () => {
           <span className={getStatusBadge(row.status)}>
             {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
           </span>
-          <div className="flex items-center space-x-1">
-            {getVerificationIcon(row.verificationStatus)}
-            <span className={getVerificationBadge(row.verificationStatus)}>
-              {row.verificationStatus}
-            </span>
-          </div>
         </div>
       )
     },
@@ -505,7 +452,7 @@ export const Citizens: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Citizens"
           value={citizenStats.totalCitizens.toLocaleString()}
@@ -513,62 +460,7 @@ export const Citizens: React.FC = () => {
           trend="+12%"
           trendDirection="up"
         />
-        <StatCard
-          title="Active Citizens"
-          value={citizenStats.activeCitizens.toLocaleString()}
-          icon={CheckCircle}
-          trend="+8%"
-          trendDirection="up"
-        />
-        <StatCard
-          title="New Registrations"
-          value={citizenStats.newRegistrations.toString()}
-          icon={Plus}
-          trend="+15%"
-          trendDirection="up"
-        />
-        <StatCard
-          title="Verified Citizens"
-          value={citizenStats.verifiedCitizens.toLocaleString()}
-          icon={Shield}
-          trend="+5%"
-          trendDirection="up"
-        />
       </div>
-
-      {/* Additional Stats for Admin */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Pending Verifications"
-            value={citizenStats.pendingVerifications.toString()}
-            icon={AlertTriangle}
-            trend="-2%"
-            trendDirection="down"
-          />
-          <StatCard
-            title="Average Rating"
-            value={`${citizenStats.averageRating}/5.0`}
-            icon={Star}
-            trend="+0.2"
-            trendDirection="up"
-          />
-          <StatCard
-            title="Total Appointments"
-            value={citizenStats.totalAppointments.toLocaleString()}
-            icon={Calendar}
-            trend="+18%"
-            trendDirection="up"
-          />
-          <StatCard
-            title="Satisfaction Rate"
-            value={`${citizenStats.citizenSatisfaction}%`}
-            icon={CheckCircle}
-            trend="+3%"
-            trendDirection="up"
-          />
-        </div>
-      )}
 
       {/* Filters and Search */}
       <Card>
@@ -576,7 +468,7 @@ export const Citizens: React.FC = () => {
           <CardTitle>Filters & Search</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search
@@ -603,22 +495,6 @@ export const Citizens: React.FC = () => {
                   { value: 'all', label: 'All Statuses' },
                   { value: 'active', label: 'Active' },
                   { value: 'inactive', label: 'Inactive' }
-                ]}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Verification Status
-              </label>
-              <Select
-                value={verificationFilter}
-                onChange={setVerificationFilter}
-                options={[
-                  { value: 'all', label: 'All Verifications' },
-                  { value: 'verified', label: 'Verified' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'rejected', label: 'Rejected' }
                 ]}
               />
             </div>
@@ -672,12 +548,6 @@ export const Citizens: React.FC = () => {
                 <span className={getStatusBadge(selectedCitizen.status)}>
                   {selectedCitizen.status.charAt(0).toUpperCase() + selectedCitizen.status.slice(1)}
                 </span>
-                <div className="flex items-center space-x-1">
-                  {getVerificationIcon(selectedCitizen.verificationStatus)}
-                  <span className={getVerificationBadge(selectedCitizen.verificationStatus)}>
-                    {selectedCitizen.verificationStatus}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -787,22 +657,6 @@ export const Citizens: React.FC = () => {
                 >
                   {selectedCitizen.status === 'active' ? 'Deactivate' : 'Activate'} Account
                 </Button>
-                {selectedCitizen.verificationStatus !== 'verified' && (
-                  <Button
-                    variant="primary"
-                    onClick={() => handleVerificationUpdate(selectedCitizen.id, 'verified')}
-                  >
-                    Verify Citizen
-                  </Button>
-                )}
-                {selectedCitizen.verificationStatus === 'pending' && (
-                  <Button
-                    variant="danger"
-                    onClick={() => handleVerificationUpdate(selectedCitizen.id, 'rejected')}
-                  >
-                    Reject Verification
-                  </Button>
-                )}
               </div>
             )}
           </div>

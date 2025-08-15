@@ -17,8 +17,7 @@ import {
   MapPin,
   Phone,
   Mail,
-  CalendarDays,
-  Timer
+  CalendarDays
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -421,7 +420,7 @@ export const Appointments: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Total Appointments"
           value={appointmentStats.totalAppointments.toLocaleString()}
@@ -441,13 +440,6 @@ export const Appointments: React.FC = () => {
           value={appointmentStats.pendingAppointments.toString()}
           icon={AlertTriangle}
           trend="-8%"
-          trendDirection="down"
-        />
-        <StatCard
-          title="Avg. Wait Time"
-          value={`${appointmentStats.averageWaitTime}m`}
-          icon={Timer}
-          trend="-3m"
           trendDirection="down"
         />
       </div>
