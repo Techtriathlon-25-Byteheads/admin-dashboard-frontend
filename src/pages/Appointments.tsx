@@ -293,16 +293,16 @@ export const Appointments: React.FC = () => {
 
   const columns = [
     {
+      key: 'reference_no',
       header: 'Reference No.',
-      accessorKey: 'reference_no',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div className="font-medium text-primary-600">{row.reference_no}</div>
       )
     },
     {
+      key: 'citizenName',
       header: 'Citizen',
-      accessorKey: 'citizenName',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div>
           <div className="font-medium">{row.citizenName}</div>
           <div className="text-sm text-gray-500">ID: {row.citizen_id}</div>
@@ -310,9 +310,9 @@ export const Appointments: React.FC = () => {
       )
     },
     {
+      key: 'serviceName',
       header: 'Service',
-      accessorKey: 'serviceName',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div>
           <div className="font-medium">{row.serviceName}</div>
           <div className="text-sm text-gray-500">{row.departmentName}</div>
@@ -320,9 +320,9 @@ export const Appointments: React.FC = () => {
       )
     },
     {
+      key: 'date_time',
       header: 'Date & Time',
-      accessorKey: 'date_time',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div>
           <div className="font-medium">{row.appointmentDate}</div>
           <div className="text-sm text-gray-500">{row.appointmentTime}</div>
@@ -330,9 +330,9 @@ export const Appointments: React.FC = () => {
       )
     },
     {
+      key: 'status',
       header: 'Status',
-      accessorKey: 'status',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div className="flex items-center space-x-2">
           {getStatusIcon(row.status)}
           <span className={getStatusBadge(row.status)}>
@@ -342,16 +342,16 @@ export const Appointments: React.FC = () => {
       )
     },
     ...(isAdmin ? [{
+      key: 'officerName',
       header: 'Officer',
-      accessorKey: 'officerName',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div className="text-sm">{row.officerName}</div>
       )
     }] : []),
     {
+      key: 'queuePosition',
       header: 'Queue Info',
-      accessorKey: 'queuePosition',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div className="text-sm">
           {row.status === 'confirmed' && row.queuePosition ? (
             <>
@@ -365,9 +365,9 @@ export const Appointments: React.FC = () => {
       )
     },
     {
+      key: 'actions',
       header: 'Actions',
-      accessorKey: 'actions',
-      cell: (row: AppointmentWithDetails) => (
+      render: (row: AppointmentWithDetails) => (
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"

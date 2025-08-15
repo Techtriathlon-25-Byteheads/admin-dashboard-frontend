@@ -366,16 +366,16 @@ export const Citizens: React.FC = () => {
 
   const columns = [
     {
+      key: 'id',
       header: 'Citizen ID',
-      accessorKey: 'id',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div className="font-medium text-primary-600">{row.id}</div>
       )
     },
     {
+      key: 'name',
       header: 'Citizen Details',
-      accessorKey: 'name',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div>
           <div className="font-medium">{row.name}</div>
           <div className="text-sm text-gray-500">{row.email}</div>
@@ -384,9 +384,9 @@ export const Citizens: React.FC = () => {
       )
     },
     {
+      key: 'phone',
       header: 'Contact',
-      accessorKey: 'phone',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div>
           <div className="flex items-center space-x-1">
             <Phone className="h-3 w-3 text-gray-400" />
@@ -400,9 +400,9 @@ export const Citizens: React.FC = () => {
       )
     },
     {
+      key: 'status',
       header: 'Status',
-      accessorKey: 'status',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div className="space-y-1">
           <span className={getStatusBadge(row.status)}>
             {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
@@ -417,9 +417,9 @@ export const Citizens: React.FC = () => {
       )
     },
     {
+      key: 'totalAppointments',
       header: 'Activity',
-      accessorKey: 'totalAppointments',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div className="text-sm">
           <div>{row.totalAppointments} appointments</div>
           <div className="text-gray-500">{row.completedAppointments} completed</div>
@@ -433,9 +433,9 @@ export const Citizens: React.FC = () => {
       )
     },
     {
+      key: 'registrationDate',
       header: 'Registration',
-      accessorKey: 'registrationDate',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div className="text-sm">
           <div>{row.registrationDate}</div>
           {row.lastLoginDate && (
@@ -445,9 +445,9 @@ export const Citizens: React.FC = () => {
       )
     },
     {
+      key: 'actions',
       header: 'Actions',
-      accessorKey: 'actions',
-      cell: (row: CitizenWithDetails) => (
+      render: (row: CitizenWithDetails) => (
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"

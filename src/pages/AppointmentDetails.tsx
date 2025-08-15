@@ -12,7 +12,6 @@ import {
   XCircle,
   AlertTriangle,
   MessageSquare,
-  Download,
   Phone,
   Mail,
   MapPin,
@@ -34,72 +33,228 @@ interface AppointmentWithDocuments extends Appointment {
   citizenNIC: string;
 }
 
-// Mock appointment data with documents
-const mockAppointment: AppointmentWithDocuments = {
-  id: 'APT-001',
-  citizen_id: 'C001',
-  service_id: 'S001',
-  officer_id: 'O001',
-  status: 'confirmed',
-  date_time: '2024-01-15T09:00:00',
-  documents_json: '["nic", "passport"]',
-  qr_code: 'QR-APT-001',
-  reference_no: 'REF-001',
-  appointment_remarks: '',
-  citizenName: 'Kasun Perera',
-  serviceName: 'Passport Application',
-  departmentName: 'Immigration & Emigration',
-  officerName: 'Nimal Silva',
-  appointmentDate: '2024-01-15',
-  appointmentTime: '09:00 AM',
-  citizenPhone: '+94 77 123 4567',
-  citizenEmail: 'kasun.perera@email.com',
-  citizenNIC: '199012345678',
-  documents: [
-    {
-      id: 'DOC-001',
-      appointment_id: 'APT-001',
-      document_name: 'National Identity Card',
-      document_type: 'NIC',
-      file_url: '/documents/nic-kasun-001.jpg',
-      file_type: 'image',
-      status: 'approved',
-      remarks: 'Clear and valid NIC copy provided',
-      reviewed_by: 'Officer Silva',
-      reviewed_at: '2024-01-14T15:30:00',
-      uploaded_at: '2024-01-14T10:00:00'
-    },
-    {
-      id: 'DOC-002',
-      appointment_id: 'APT-001',
-      document_name: 'Birth Certificate',
-      document_type: 'Birth Certificate',
-      file_url: '/documents/birth-cert-kasun-001.pdf',
-      file_type: 'pdf',
-      status: 'pending',
-      uploaded_at: '2024-01-14T10:15:00'
-    },
-    {
-      id: 'DOC-003',
-      appointment_id: 'APT-001',
-      document_name: 'Marriage Certificate',
-      document_type: 'Marriage Certificate',
-      file_url: '/documents/marriage-cert-kasun-001.pdf',
-      file_type: 'pdf',
-      status: 'rejected',
-      remarks: 'Document is not clear, please upload a better quality scan',
-      reviewed_by: 'Officer Silva',
-      reviewed_at: '2024-01-14T16:00:00',
-      uploaded_at: '2024-01-14T10:30:00'
-    }
-  ]
+// Enhanced mock appointments data for testing different scenarios
+const mockAppointments = [
+  {
+    id: 'APT-001',
+    citizen_id: 'C001',
+    service_id: 'S001',
+    officer_id: 'O001',
+    status: 'confirmed',
+    date_time: '2024-01-15T09:00:00',
+    documents_json: '["nic", "birth_cert", "utility_bill", "photos"]',
+    qr_code: 'QR-APT-001',
+    reference_no: 'REF-001',
+    appointment_remarks: 'Initial passport application. Citizen is applying for first-time passport.',
+    citizenName: 'Kasun Perera',
+    serviceName: 'Passport Application',
+    departmentName: 'Immigration & Emigration',
+    officerName: 'Nimal Silva',
+    appointmentDate: '2024-01-15',
+    appointmentTime: '09:00 AM',
+    citizenPhone: '+94 77 123 4567',
+    citizenEmail: 'kasun.perera@email.com',
+    citizenNIC: '199012345678',
+    documents: [
+      {
+        id: 'DOC-001',
+        appointment_id: 'APT-001',
+        document_name: 'National Identity Card',
+        document_type: 'NIC',
+        file_url: '/documents/nic-kasun-001.jpg',
+        file_type: 'image',
+        status: 'approved',
+        remarks: 'Clear and valid NIC copy provided. All details verified.',
+        reviewed_by: 'Officer Silva',
+        reviewed_at: '2024-01-14T15:30:00',
+        uploaded_at: '2024-01-14T10:00:00'
+      },
+      {
+        id: 'DOC-002',
+        appointment_id: 'APT-001',
+        document_name: 'Birth Certificate',
+        document_type: 'Birth Certificate',
+        file_url: '/documents/birth-cert-kasun-001.pdf',
+        file_type: 'pdf',
+        status: 'pending',
+        remarks: '',
+        uploaded_at: '2024-01-14T10:15:00'
+      },
+      {
+        id: 'DOC-003',
+        appointment_id: 'APT-001',
+        document_name: 'Utility Bill',
+        document_type: 'Proof of Address',
+        file_url: '/documents/utility-bill-kasun-001.pdf',
+        file_type: 'pdf',
+        status: 'rejected',
+        remarks: 'Utility bill is older than 3 months (dated 2023-08-15). Please provide a recent bill within the last 90 days.',
+        reviewed_by: 'Officer Silva',
+        reviewed_at: '2024-01-14T16:00:00',
+        uploaded_at: '2024-01-14T10:30:00'
+      },
+      {
+        id: 'DOC-004',
+        appointment_id: 'APT-001',
+        document_name: 'Passport Photos',
+        document_type: 'Passport Size Photographs',
+        file_url: '/documents/photos-kasun-001.jpg',
+        file_type: 'image',
+        status: 'pending',
+        remarks: '',
+        uploaded_at: '2024-01-14T10:45:00'
+      }
+    ]
+  },
+  {
+    id: 'APT-002',
+    citizen_id: 'C002',
+    service_id: 'S002',
+    officer_id: 'O002',
+    status: 'pending',
+    date_time: '2024-01-16T10:30:00',
+    documents_json: '["medical_cert", "current_license", "nic"]',
+    qr_code: 'QR-APT-002',
+    reference_no: 'REF-002',
+    appointment_remarks: 'Driving license renewal. Medical examination completed.',
+    citizenName: 'Priya Fernando',
+    serviceName: 'Driving License Renewal',
+    departmentName: 'Motor Traffic Department',
+    officerName: 'Sumana Wickramasinghe',
+    appointmentDate: '2024-01-16',
+    appointmentTime: '10:30 AM',
+    citizenPhone: '+94 71 987 6543',
+    citizenEmail: 'priya.fernando@email.com',
+    citizenNIC: '198506789012',
+    documents: [
+      {
+        id: 'DOC-005',
+        appointment_id: 'APT-002',
+        document_name: 'Medical Certificate',
+        document_type: 'Medical Fitness Certificate',
+        file_url: '/documents/medical-priya-002.pdf',
+        file_type: 'pdf',
+        status: 'approved',
+        remarks: 'Valid medical certificate from registered physician Dr. Rajapakse. Valid for 6 months.',
+        reviewed_by: 'Medical Officer',
+        reviewed_at: '2024-01-15T11:20:00',
+        uploaded_at: '2024-01-15T08:45:00'
+      },
+      {
+        id: 'DOC-006',
+        appointment_id: 'APT-002',
+        document_name: 'Current Driving License',
+        document_type: 'Existing License',
+        file_url: '/documents/license-priya-002.jpg',
+        file_type: 'image',
+        status: 'approved',
+        remarks: 'Valid license with no traffic violations recorded.',
+        reviewed_by: 'Officer Bandara',
+        reviewed_at: '2024-01-15T12:30:00',
+        uploaded_at: '2024-01-15T08:50:00'
+      },
+      {
+        id: 'DOC-007',
+        appointment_id: 'APT-002',
+        document_name: 'NIC Copy',
+        document_type: 'National Identity Card',
+        file_url: '/documents/nic-priya-002.jpg',
+        file_type: 'image',
+        status: 'pending',
+        remarks: '',
+        uploaded_at: '2024-01-15T08:55:00'
+      }
+    ]
+  },
+  {
+    id: 'APT-003',
+    citizen_id: 'C003',
+    service_id: 'S003',
+    officer_id: 'O003',
+    status: 'confirmed',
+    date_time: '2024-01-17T14:00:00',
+    documents_json: '["birth_report", "marriage_cert", "parent_nics"]',
+    qr_code: 'QR-APT-003',
+    reference_no: 'REF-003',
+    appointment_remarks: 'Birth certificate application for newborn child. All hospital documentation ready.',
+    citizenName: 'Saman Kumara',
+    serviceName: 'Birth Certificate Application',
+    departmentName: 'Registrar General\'s Department',
+    officerName: 'Kamala Dissanayake',
+    appointmentDate: '2024-01-17',
+    appointmentTime: '02:00 PM',
+    citizenPhone: '+94 75 555 1234',
+    citizenEmail: 'saman.kumara@email.com',
+    citizenNIC: '198712345678',
+    documents: [
+      {
+        id: 'DOC-008',
+        appointment_id: 'APT-003',
+        document_name: 'Hospital Birth Report',
+        document_type: 'Official Birth Report',
+        file_url: '/documents/birth-report-003.pdf',
+        file_type: 'pdf',
+        status: 'approved',
+        remarks: 'Official birth report from Castle Street Hospital. All details verified with hospital records.',
+        reviewed_by: 'Registrar Officer',
+        reviewed_at: '2024-01-16T09:30:00',
+        uploaded_at: '2024-01-16T08:30:00'
+      },
+      {
+        id: 'DOC-009',
+        appointment_id: 'APT-003',
+        document_name: 'Parents Marriage Certificate',
+        document_type: 'Marriage Certificate',
+        file_url: '/documents/marriage-cert-003.pdf',
+        file_type: 'pdf',
+        status: 'rejected',
+        remarks: 'Certificate appears to be damaged and text is unclear. Please provide certified copy from Registrar General\'s office.',
+        reviewed_by: 'Officer Mendis',
+        reviewed_at: '2024-01-16T13:15:00',
+        uploaded_at: '2024-01-16T09:35:00'
+      },
+      {
+        id: 'DOC-010',
+        appointment_id: 'APT-003',
+        document_name: 'Father\'s NIC',
+        document_type: 'National Identity Card',
+        file_url: '/documents/father-nic-003.jpg',
+        file_type: 'image',
+        status: 'approved',
+        remarks: 'Clear copy, all details visible and verified.',
+        reviewed_by: 'Officer Mendis',
+        reviewed_at: '2024-01-16T13:20:00',
+        uploaded_at: '2024-01-16T09:40:00'
+      },
+      {
+        id: 'DOC-011',
+        appointment_id: 'APT-003',
+        document_name: 'Mother\'s NIC',
+        document_type: 'National Identity Card',
+        file_url: '/documents/mother-nic-003.jpg',
+        file_type: 'image',
+        status: 'approved',
+        remarks: 'Clear copy, all details visible and verified.',
+        reviewed_by: 'Officer Mendis',
+        reviewed_at: '2024-01-16T13:25:00',
+        uploaded_at: '2024-01-16T09:45:00'
+      }
+    ]
+  }
+];
+
+// Function to get appointment by ID (for demo purposes)
+const getAppointmentById = (id) => {
+  return mockAppointments.find(apt => apt.id === id) || mockAppointments[0];
 };
 
 export const AppointmentDetails: React.FC = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
 
-  const [appointment, setAppointment] = useState<AppointmentWithDocuments>(mockAppointment);
+  // Get the specific appointment based on URL parameter
+  const selectedAppointment = getAppointmentById(appointmentId);
+  const [appointment, setAppointment] = useState<AppointmentWithDocuments>(selectedAppointment);
   const [appointmentRemarks, setAppointmentRemarks] = useState(appointment.appointment_remarks || '');
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -198,96 +353,47 @@ export const AppointmentDetails: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Citizen Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Citizen Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Full Name</label>
-                    <p className="text-lg font-semibold">{appointment.citizenName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">NIC Number</label>
-                    <p className="font-mono">{appointment.citizenNIC}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span>{appointment.citizenPhone}</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span>{appointment.citizenEmail}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span>Colombo 07, Sri Lanka</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Appointment Information - Top Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5" />
+            <span>Appointment Information</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-500">Service</label>
+              <p className="text-lg font-semibold">{appointment.serviceName}</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-500">Department</label>
+              <p className="flex items-center space-x-2">
+                <Building2 className="h-4 w-4 text-gray-400" />
+                <span>{appointment.departmentName}</span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-500">Date & Time</label>
+              <p className="flex items-center space-x-2">
+                <Clock className="h-4 w-4 text-gray-400" />
+                <span>{appointment.appointmentDate} at {appointment.appointmentTime}</span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-500">Reference Number</label>
+              <p className="font-mono">{appointment.reference_no}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Appointment Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
-                <span>Appointment Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Service</label>
-                    <p className="text-lg font-semibold">{appointment.serviceName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Department</label>
-                    <p className="flex items-center space-x-2">
-                      <Building2 className="h-4 w-4 text-gray-400" />
-                      <span>{appointment.departmentName}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Assigned Officer</label>
-                    <p>{appointment.officerName}</p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Date & Time</label>
-                    <p className="flex items-center space-x-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <span>{appointment.appointmentDate} at {appointment.appointmentTime}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Reference Number</label>
-                    <p className="font-mono">{appointment.reference_no}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">QR Code</label>
-                    <p className="font-mono text-sm">{appointment.qr_code}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Documents Section */}
+      {/* Main Content Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content - Documents and Actions */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Uploaded Documents */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -312,7 +418,7 @@ export const AppointmentDetails: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {appointment.documents?.map((document) => (
                   <div
                     key={document.id}
@@ -424,80 +530,58 @@ export const AppointmentDetails: React.FC = () => {
           </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Stats */}
+        {/* Right Sidebar - Citizen Information */}
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Document Status Summary</CardTitle>
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5" />
+                <span>Citizen Information</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span>Approved</span>
-                  </span>
-                  <span className="font-semibold">{approvedDocuments}</span>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Full Name</label>
+                  <p className="text-lg font-semibold">{appointment.citizenName}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center space-x-2">
-                    <XCircle className="h-4 w-4 text-red-600" />
-                    <span>Rejected</span>
-                  </span>
-                  <span className="font-semibold">{rejectedDocuments}</span>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">NIC Number</label>
+                  <p className="font-mono">{appointment.citizenNIC}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center space-x-2">
-                    <AlertTriangle className="h-4 w-4 text-gray-600" />
-                    <span>Pending</span>
-                  </span>
-                  <span className="font-semibold">{pendingDocuments}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Required Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Required Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {JSON.parse(appointment.documents_json).map((doc: string, index: number) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                    <span className="text-sm">{doc.replace('_', ' ').toUpperCase()}</span>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Contact</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{appointment.citizenPhone}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{appointment.citizenEmail}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => navigate(`/appointments/${appointmentId}/documents/upload`)}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download All Documents
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => window.print()}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Print Summary
-                </Button>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Address</label>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm">Colombo 07, Sri Lanka</span>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <label className="text-sm font-medium text-gray-500">Assigned Officer</label>
+                  <p className="font-medium">{appointment.officerName}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">QR Code</label>
+                  <p className="font-mono text-xs bg-gray-100 p-2 rounded">{appointment.qr_code}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

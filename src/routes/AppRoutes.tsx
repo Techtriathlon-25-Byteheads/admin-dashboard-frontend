@@ -8,6 +8,7 @@ import { Departments } from '../pages/Departments';
 import { Services } from '../pages/Services';
 import { Appointments } from '../pages/Appointments';
 import { Citizens } from '../pages/Citizens';
+import { Officers } from '../pages/Officers';
 import { Feedback } from '../pages/Feedback';
 import { AppointmentDetails } from '../pages/AppointmentDetails';
 import { DocumentView } from '../pages/DocumentView';
@@ -108,6 +109,17 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <AdminRoute>
               <Citizens />
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/officers"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Officers />
             </AdminRoute>
           </ProtectedRoute>
         }

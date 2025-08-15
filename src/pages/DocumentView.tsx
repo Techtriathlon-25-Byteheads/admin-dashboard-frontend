@@ -19,42 +19,141 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
 
-// Mock document data
-const mockDocument = {
-  id: 'DOC-002',
-  appointment_id: 'APT-001',
-  document_name: 'Birth Certificate',
-  document_type: 'Birth Certificate',
-  file_url: '/documents/birth-cert-kasun-001.pdf',
-  file_type: 'pdf',
-  status: 'pending',
-  remarks: '',
-  uploaded_at: '2024-01-14T10:15:00',
-  appointment: {
-    id: 'APT-001',
-    reference_no: 'REF-001',
-    citizen: {
-      name: 'Kasun Perera',
-      nic: '199012345678',
-      phone: '+94 77 123 4567',
-      email: 'kasun.perera@email.com'
-    },
-    service: {
-      name: 'Passport Application',
-      department: 'Immigration & Emigration'
-    },
-    date_time: '2024-01-15T09:00:00',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '09:00 AM'
+// Enhanced mock data for different documents
+const mockDocuments = [
+  {
+    id: 'DOC-001',
+    appointment_id: 'APT-001',
+    document_name: 'National Identity Card',
+    document_type: 'NIC',
+    file_url: '/documents/nic-kasun-001.jpg',
+    file_type: 'image',
+    status: 'approved',
+    remarks: 'Clear and valid NIC copy provided. All details verified.',
+    uploaded_at: '2024-01-14T10:15:00',
+    reviewed_by: 'Officer Silva',
+    reviewed_at: '2024-01-14T15:30:00',
+    appointment: {
+      id: 'APT-001',
+      reference_no: 'REF-001',
+      citizen: {
+        name: 'Kasun Perera',
+        nic: '199012345678',
+        phone: '+94 77 123 4567',
+        email: 'kasun.perera@email.com'
+      },
+      service: {
+        name: 'Passport Application',
+        department: 'Immigration & Emigration'
+      },
+      date_time: '2024-01-15T09:00:00',
+      appointmentDate: '2024-01-15',
+      appointmentTime: '09:00 AM'
+    }
+  },
+  {
+    id: 'DOC-002',
+    appointment_id: 'APT-001',
+    document_name: 'Birth Certificate',
+    document_type: 'Birth Certificate',
+    file_url: '/documents/birth-cert-kasun-001.pdf',
+    file_type: 'pdf',
+    status: 'pending',
+    remarks: '',
+    uploaded_at: '2024-01-14T10:15:00',
+    appointment: {
+      id: 'APT-001',
+      reference_no: 'REF-001',
+      citizen: {
+        name: 'Kasun Perera',
+        nic: '199012345678',
+        phone: '+94 77 123 4567',
+        email: 'kasun.perera@email.com'
+      },
+      service: {
+        name: 'Passport Application',
+        department: 'Immigration & Emigration'
+      },
+      date_time: '2024-01-15T09:00:00',
+      appointmentDate: '2024-01-15',
+      appointmentTime: '09:00 AM'
+    }
+  },
+  {
+    id: 'DOC-003',
+    appointment_id: 'APT-001',
+    document_name: 'Utility Bill',
+    document_type: 'Proof of Address',
+    file_url: '/documents/utility-bill-kasun-001.pdf',
+    file_type: 'pdf',
+    status: 'rejected',
+    remarks: 'Utility bill is older than 3 months (dated 2023-08-15). Please provide a recent bill within the last 90 days.',
+    uploaded_at: '2024-01-14T10:30:00',
+    reviewed_by: 'Officer Silva',
+    reviewed_at: '2024-01-14T16:00:00',
+    appointment: {
+      id: 'APT-001',
+      reference_no: 'REF-001',
+      citizen: {
+        name: 'Kasun Perera',
+        nic: '199012345678',
+        phone: '+94 77 123 4567',
+        email: 'kasun.perera@email.com'
+      },
+      service: {
+        name: 'Passport Application',
+        department: 'Immigration & Emigration'
+      },
+      date_time: '2024-01-15T09:00:00',
+      appointmentDate: '2024-01-15',
+      appointmentTime: '09:00 AM'
+    }
+  },
+  {
+    id: 'DOC-005',
+    appointment_id: 'APT-002',
+    document_name: 'Medical Certificate',
+    document_type: 'Medical Fitness Certificate',
+    file_url: '/documents/medical-priya-002.pdf',
+    file_type: 'pdf',
+    status: 'approved',
+    remarks: 'Valid medical certificate from registered physician Dr. Rajapakse. Valid for 6 months.',
+    uploaded_at: '2024-01-15T08:45:00',
+    reviewed_by: 'Medical Officer',
+    reviewed_at: '2024-01-15T11:20:00',
+    appointment: {
+      id: 'APT-002',
+      reference_no: 'REF-002',
+      citizen: {
+        name: 'Priya Fernando',
+        nic: '198506789012',
+        phone: '+94 71 987 6543',
+        email: 'priya.fernando@email.com'
+      },
+      service: {
+        name: 'Driving License Renewal',
+        department: 'Motor Traffic Department'
+      },
+      date_time: '2024-01-16T10:30:00',
+      appointmentDate: '2024-01-16',
+      appointmentTime: '10:30 AM'
+    }
   }
+];
+
+// Function to get document by ID
+const getDocumentById = (documentId) => {
+  return mockDocuments.find(doc => doc.id === documentId) || mockDocuments[0];
 };
 
 export const DocumentView = () => {
-  const { appointmentId } = useParams();
+  const { appointmentId, documentId } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
 
-  const [document, setDocument] = useState(mockDocument);
+  // Get the specific document based on URL parameter
+  const selectedDocument = getDocumentById(documentId);
+  const [document, setDocument] = useState(selectedDocument);
   const [remarks, setRemarks] = useState(document.remarks || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [zoom, setZoom] = useState(100);
