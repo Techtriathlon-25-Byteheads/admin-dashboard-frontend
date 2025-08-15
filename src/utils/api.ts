@@ -113,7 +113,7 @@ export const api = {
   getServices: () => apiRequest('/services'),
   
   // Admin appointments (scoped by role)
-  getAdminAppointments: () => apiRequest('/v1/admin/appointments'),
+  getAdminAppointments: () => apiRequest('/admin/appointments'),
   
   // Admin users management (Super Admin only)
   getAdminUsers: () => apiRequest('/v1/admin/admins'),
