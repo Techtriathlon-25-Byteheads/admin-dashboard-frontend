@@ -7,32 +7,30 @@ import {
   Calendar, 
   MessageSquare, 
   Bot, 
-  Bell, 
-  Shield,
+  Bell,
   FileText,
-  UserCheck,
-  Settings
+  UserCheck
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface SidebarItem {
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   path: string;
-  roles: ('admin' | 'officer')[];
+  roles: ('ADMIN' | 'SUPER_ADMIN')[];
 }
 
 const sidebarItems: SidebarItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['admin', 'officer'] },
-  { icon: Building2, label: 'Departments', path: '/departments', roles: ['admin'] },
-  { icon: FileText, label: 'Services', path: '/services', roles: ['admin'] },
-  { icon: UserCheck, label: 'Officers', path: '/officers', roles: ['admin'] },
-  { icon: Users, label: 'Citizens', path: '/citizens', roles: ['admin'] },
-  { icon: Calendar, label: 'Appointments', path: '/appointments', roles: ['admin', 'officer'] },
-  { icon: MessageSquare, label: 'Feedback', path: '/feedback', roles: ['admin', 'officer'] },
-  { icon: Bot, label: 'AI Chatbot', path: '/chatbot', roles: ['admin'] },
-  { icon: Bell, label: 'Notifications', path: '/notifications', roles: ['admin'] },
-//   { icon: Shield, label: 'Security', path: '/security', roles: ['admin'] },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { icon: Building2, label: 'Departments', path: '/departments', roles: ['SUPER_ADMIN'] },
+  { icon: FileText, label: 'Services', path: '/services', roles: ['SUPER_ADMIN'] },
+  { icon: UserCheck, label: 'Officers', path: '/officers', roles: ['SUPER_ADMIN'] },
+  { icon: Users, label: 'Citizens', path: '/citizens', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { icon: Calendar, label: 'Appointments', path: '/appointments', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { icon: MessageSquare, label: 'Feedback', path: '/feedback', roles: ['ADMIN', 'SUPER_ADMIN'] },
+  { icon: Bot, label: 'AI Chatbot', path: '/chatbot', roles: ['SUPER_ADMIN'] },
+  { icon: Bell, label: 'Notifications', path: '/notifications', roles: ['SUPER_ADMIN'] },
+//   { icon: Shield, label: 'Security', path: '/security', roles: ['SUPER_ADMIN'] },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -51,7 +49,7 @@ export const Sidebar: React.FC = () => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-primary-600">Gov Portal</h1>
-            <p className="text-xs text-gray-600">{user?.role === 'admin' ? 'Admin Panel' : 'Officer Portal'}</p>
+            <p className="text-xs text-gray-600">{user?.role === 'SUPER_ADMIN' ? 'Super Admin Panel' : 'Admin Portal'}</p>
           </div>
         </div>
       </div>
