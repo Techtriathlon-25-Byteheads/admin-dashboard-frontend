@@ -1,720 +1,543 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Search,
-  Eye,
-  Edit3,
-  Plus,
-  Download,
-  RotateCcw,
-  Mail,
-  Phone,
-  CreditCard,
-  MapPin,
-  Calendar,
-  FileText,
-  Star
-} from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card } from '../components/ui/Card';
+import { StatCard } from '../components/ui/StatCard';
+import { Table } from '../components/ui/Table';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
-import { Table } from '../components/ui/Table';
-import { StatCard } from '../components/ui/StatCard';
+import { api } from '../utils/api';
+import { User, Appointment } from '../types'; // Using User for citizens
 import { useAuthStore } from '../store/authStore';
-import { Citizen } from '../types';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Edit3, 
+  Eye, // Re-adding Eye for View Appointments
+  Calendar,
+  ClipboardList
+} from 'lucide-react';
 
-interface CitizenWithDetails extends Citizen {
-  totalAppointments: number;
-  completedAppointments: number;
-  lastAppointmentDate?: string;
-  registrationDate: string;
-  verificationStatus: 'verified' | 'pending' | 'rejected';
-  documentStatus: 'complete' | 'incomplete' | 'pending_review';
-  address?: string;
-  dateOfBirth?: string;
-  gender?: 'male' | 'female' | 'other';
-  preferredLanguage?: 'sinhala' | 'tamil' | 'english';
-  emergencyContact?: string;
-  occupation?: string;
-  lastLoginDate?: string;
-  averageRating?: number;
+interface CitizenFilters {
+  search: string;
+  status: 'all' | 'active' | 'inactive';
+  sortBy: 'name' | 'createdAt' | 'email';
+  sortOrder: 'asc' | 'desc';
 }
-
-// Mock data for demonstration
-const mockCitizens: CitizenWithDetails[] = [
-  {
-    id: 'C001',
-    name: 'Kasun Perera',
-    email: 'kasun.perera@email.com',
-    nic: '199012345678',
-    phone: '+94771234567',
-    status: 'active',
-    totalAppointments: 5,
-    completedAppointments: 4,
-    lastAppointmentDate: '2024-01-10',
-    registrationDate: '2023-06-15',
-    verificationStatus: 'verified',
-    documentStatus: 'complete',
-    address: 'No. 123, Galle Road, Colombo 03',
-    dateOfBirth: '1990-03-15',
-    gender: 'male',
-    preferredLanguage: 'english',
-    emergencyContact: '+94771234568',
-    occupation: 'Software Engineer',
-    lastLoginDate: '2024-01-12',
-    averageRating: 4.8
-  },
-  {
-    id: 'C002',
-    name: 'Amara Fernando',
-    email: 'amara.fernando@email.com',
-    nic: '198807654321',
-    phone: '+94777654321',
-    status: 'active',
-    totalAppointments: 3,
-    completedAppointments: 2,
-    lastAppointmentDate: '2024-01-08',
-    registrationDate: '2023-08-22',
-    verificationStatus: 'verified',
-    documentStatus: 'complete',
-    address: 'No. 456, Kandy Road, Kandy',
-    dateOfBirth: '1988-11-20',
-    gender: 'female',
-    preferredLanguage: 'sinhala',
-    emergencyContact: '+94777654322',
-    occupation: 'Teacher',
-    lastLoginDate: '2024-01-11',
-    averageRating: 4.5
-  },
-  {
-    id: 'C003',
-    name: 'Priya Jayawardena',
-    email: 'priya.jayawardena@email.com',
-    nic: '199205432109',
-    phone: '+94765432109',
-    status: 'active',
-    totalAppointments: 8,
-    completedAppointments: 7,
-    lastAppointmentDate: '2024-01-14',
-    registrationDate: '2023-04-10',
-    verificationStatus: 'verified',
-    documentStatus: 'complete',
-    address: 'No. 789, Main Street, Galle',
-    dateOfBirth: '1992-07-08',
-    gender: 'female',
-    preferredLanguage: 'english',
-    emergencyContact: '+94765432110',
-    occupation: 'Doctor',
-    lastLoginDate: '2024-01-15',
-    averageRating: 4.9
-  },
-  {
-    id: 'C004',
-    name: 'Ruwan Dissanayake',
-    email: 'ruwan.dissanayake@email.com',
-    nic: '198512345432',
-    phone: '+94712345432',
-    status: 'inactive',
-    totalAppointments: 2,
-    completedAppointments: 1,
-    lastAppointmentDate: '2023-12-05',
-    registrationDate: '2023-09-18',
-    verificationStatus: 'pending',
-    documentStatus: 'incomplete',
-    address: 'No. 321, Hospital Road, Matara',
-    dateOfBirth: '1985-09-12',
-    gender: 'male',
-    preferredLanguage: 'sinhala',
-    emergencyContact: '+94712345433',
-    occupation: 'Business Owner',
-    lastLoginDate: '2023-12-20',
-    averageRating: 3.8
-  },
-  {
-    id: 'C005',
-    name: 'Lakshmi Rajapakse',
-    email: 'lakshmi.rajapakse@email.com',
-    nic: '199611223344',
-    phone: '+94781122334',
-    status: 'active',
-    totalAppointments: 1,
-    completedAppointments: 0,
-    registrationDate: '2024-01-05',
-    verificationStatus: 'rejected',
-    documentStatus: 'pending_review',
-    address: 'No. 654, Temple Road, Anuradhapura',
-    dateOfBirth: '1996-05-18',
-    gender: 'female',
-    preferredLanguage: 'tamil',
-    emergencyContact: '+94781122335',
-    occupation: 'Student',
-    lastLoginDate: '2024-01-14',
-    averageRating: 0
-  }
-];
-
-const citizenStats = {
-  totalCitizens: 2891,
-  activeCitizens: 2654,
-  newRegistrations: 47,
-  verifiedCitizens: 2589,
-  pendingVerifications: 156,
-  rejectedVerifications: 146,
-  averageRating: 4.6,
-  totalAppointments: 8945,
-  completedAppointments: 7821,
-  citizenSatisfaction: 92.5
-};
 
 export const Citizens: React.FC = () => {
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   
-  const [citizens, setCitizens] = useState<CitizenWithDetails[]>(mockCitizens);
-  const [filteredCitizens, setFilteredCitizens] = useState<CitizenWithDetails[]>(mockCitizens);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedCitizen, setSelectedCitizen] = useState<CitizenWithDetails | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [newCitizen, setNewCitizen] = useState({
-    name: '',
-    email: '',
-    nic: '',
+  const [citizens, setCitizens] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
+  const [selectedCitizen, setSelectedCitizen] = useState<User | null>(null);
+  const [citizenAppointments, setCitizenAppointments] = useState<Appointment[]>([]);
+  
+  // Form state for editing citizen
+  const [citizenForm, setCitizenForm] = useState({
+    firstName: '',
+    lastName: '',
     phone: '',
-    address: '',
+    nationalId: '',
     dateOfBirth: '',
-    gender: 'male',
-    preferredLanguage: 'english',
-    emergencyContact: '',
-    occupation: ''
+    address: {
+      street: '',
+      city: '',
+    },
+    isActive: true,
+  });
+  
+  // Filter states
+  const [filters, setFilters] = useState<CitizenFilters>({
+    search: '',
+    status: 'all',
+    sortBy: 'name',
+    sortOrder: 'desc'
+  });
+  
+  // Statistics
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    newThisMonth: 0 // Placeholder, might not be directly available from API
   });
 
-  // Filter citizens based on search and filters
-  useEffect(() => {
-    let filtered = citizens;
-
-    // Role-based filtering - Officers see citizens only from their department's appointments
-    if (!isAdmin) {
-      // In a real app, this would filter by department-related citizens
-      filtered = citizens;
+  // Load citizens data
+  const loadCitizens = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.getCitizens();
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      const citizenUsers = (response.data as User[]) || [];
+      setCitizens(citizenUsers);
+      
+      // Calculate statistics
+      const active = citizenUsers.filter(c => c.isActive).length;
+      const inactive = citizenUsers.filter(c => !c.isActive).length;
+      
+      // Placeholder for new this month - API doesn't provide this directly for citizens
+      // You might need to filter by createdAt if available and within the current month
+      const newThisMonth = 0; 
+      
+      setStats({
+        total: citizenUsers.length,
+        active,
+        inactive,
+        newThisMonth
+      });
+      
+    } catch (err) {
+      console.error('Failed to load citizens:', err);
+      setError((err as Error).message || 'Failed to load citizens');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(citizen =>
-        citizen.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        citizen.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        citizen.nic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        citizen.phone.includes(searchTerm) ||
-        citizen.id.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter and sort citizens
+  const filteredCitizens = useMemo(() => {
+    let filtered = [...citizens];
+    
+    // Apply search filter
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      filtered = filtered.filter(citizen => 
+        (citizen.firstName || '').toLowerCase().includes(search) ||
+        (citizen.lastName || '').toLowerCase().includes(search) ||
+        (citizen.email || '').toLowerCase().includes(search) ||
+        (citizen.nic || '').toLowerCase().includes(search) ||
+        (citizen.phone || '').toLowerCase().includes(search)
       );
     }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(citizen => citizen.status === statusFilter);
+    
+    // Apply status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(citizen => 
+        filters.status === 'active' ? citizen.isActive : !citizen.isActive
+      );
     }
-
-    setFilteredCitizens(filtered);
-  }, [searchTerm, statusFilter, citizens, isAdmin]);
-
-  const getStatusBadge = (status: string) => {
-    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'active':
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case 'inactive':
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-    }
-  };
-
-  const handleViewCitizen = (citizen: CitizenWithDetails) => {
-    setSelectedCitizen(citizen);
-    setIsViewModalOpen(true);
-  };
-
-  const handleEditCitizen = (citizen: CitizenWithDetails) => {
-    setSelectedCitizen(citizen);
-    setNewCitizen({
-      name: citizen.name,
-      email: citizen.email,
-      nic: citizen.nic,
-      phone: citizen.phone,
-      address: citizen.address || '',
-      dateOfBirth: citizen.dateOfBirth || '',
-      gender: citizen.gender || 'male',
-      preferredLanguage: citizen.preferredLanguage || 'english',
-      emergencyContact: citizen.emergencyContact || '',
-      occupation: citizen.occupation || ''
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: string | number | Date = '';
+      let bValue: string | number | Date = '';
+      
+      switch (filters.sortBy) {
+        case 'name':
+          aValue = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
+          bValue = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
+          break;
+        case 'email':
+          aValue = (a.email || '').toLowerCase();
+          bValue = (b.email || '').toLowerCase();
+          break;
+        case 'createdAt':
+          aValue = new Date(a.createdAt || '');
+          bValue = new Date(b.createdAt || '');
+          break;
+        default:
+          aValue = `${a.firstName || ''} ${a.lastName || ''}`.toLowerCase();
+          bValue = `${b.firstName || ''} ${b.lastName || ''}`.toLowerCase();
+      }
+      
+      if (aValue < bValue) return filters.sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return filters.sortOrder === 'asc' ? 1 : -1;
+      return 0;
     });
-    setIsEditModalOpen(true);
-  };
+    
+    return filtered;
+  }, [citizens, filters]);
 
-  const handleAddCitizen = () => {
-    setNewCitizen({
-      name: '',
-      email: '',
-      nic: '',
+  // Reset form
+  const resetForm = () => {
+    setCitizenForm({
+      firstName: '',
+      lastName: '',
       phone: '',
-      address: '',
+      nationalId: '',
       dateOfBirth: '',
-      gender: 'male',
-      preferredLanguage: 'english',
-      emergencyContact: '',
-      occupation: ''
+      address: {
+        street: '',
+        city: '',
+      },
+      isActive: true,
     });
-    setIsAddModalOpen(true);
   };
 
-  const handleSaveCitizen = () => {
-    if (selectedCitizen) {
-      // Update existing citizen
-      setCitizens(prev =>
-        prev.map(citizen =>
-          citizen.id === selectedCitizen.id
-            ? { ...citizen, ...newCitizen }
-            : citizen
-        )
-      );
-      setIsEditModalOpen(false);
-    } else {
-      // Add new citizen
-      const newCitizenData: CitizenWithDetails = {
-        ...newCitizen,
-        id: `C${Date.now()}`,
-        status: 'active',
-        totalAppointments: 0,
-        completedAppointments: 0,
-        registrationDate: new Date().toISOString().split('T')[0],
-        verificationStatus: 'verified',
-        documentStatus: 'complete',
-        averageRating: 0
-      };
-      setCitizens(prev => [...prev, newCitizenData]);
-      setIsAddModalOpen(false);
+  // Handle edit citizen
+  const handleEdit = (citizen: User) => {
+    setSelectedCitizen(citizen);
+    setCitizenForm({
+      firstName: citizen.firstName || '',
+      lastName: citizen.lastName || '',
+      phone: citizen.phone || '',
+      nationalId: citizen.nationalId || '',
+      dateOfBirth: citizen.dateOfBirth ? citizen.dateOfBirth.split('T')[0] : '', // Format for date input
+      address: {
+        street: citizen.address?.street || '',
+        city: citizen.address?.city || '',
+      },
+      isActive: citizen.isActive,
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle save citizen (update)
+  const handleSave = async () => {
+    if (!selectedCitizen) return;
+
+    if (!citizenForm.firstName) { // Only firstName is required now
+      setError('First name is required');
+      return;
     }
-    setSelectedCitizen(null);
+
+    try {
+      setLoading(true);
+
+      const response = await api.updateCitizen(selectedCitizen.userId!, {
+        firstName: citizenForm.firstName,
+        lastName: citizenForm.lastName,
+        phone: citizenForm.phone,
+        nationalId: citizenForm.nationalId,
+        dateOfBirth: citizenForm.dateOfBirth,
+        address: citizenForm.address,
+        isActive: citizenForm.isActive,
+      });
+
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      setShowEditModal(false);
+      setSelectedCitizen(null);
+      resetForm();
+      await loadCitizens(); // Reload data
+
+    } catch (err) {
+      console.error('Failed to save citizen:', err);
+      setError((err as Error).message || 'Failed to save citizen');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleStatusUpdate = (citizenId: string, newStatus: 'active' | 'inactive') => {
-    setCitizens(prev =>
-      prev.map(citizen =>
-        citizen.id === citizenId
-          ? { ...citizen, status: newStatus }
-          : citizen
-      )
-    );
+  // Handle view appointments
+  const handleViewAppointments = async (citizen: User) => {
+    setSelectedCitizen(citizen);
+    setCitizenAppointments([]); // Clear previous appointments
+    try {
+      setLoading(true);
+      const response = await api.getCitizenAppointments(citizen.userId!);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      setCitizenAppointments((response.data as Appointment[]) || []);
+      setShowAppointmentsModal(true);
+    } catch (err) {
+      console.error('Failed to load appointments:', err);
+      setError((err as Error).message || 'Failed to load appointments');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const exportCitizens = () => {
-    // In a real app, this would generate and download a CSV/Excel file
-    console.log('Exporting citizens...', filteredCitizens);
-  };
-
+  // Table columns
   const columns = [
     {
-      key: 'id',
-      header: 'Citizen ID',
-      render: (row: CitizenWithDetails) => (
-        <div className="font-medium text-primary-600">{row.id}</div>
-      )
-    },
-    {
-      key: 'name',
-      header: 'Citizen Details',
-      render: (row: CitizenWithDetails) => (
+      key: 'firstName',
+      header: 'Name',
+      render: (citizen: User) => (
         <div>
-          <div className="font-medium">{row.name}</div>
-          <div className="text-sm text-gray-500">{row.email}</div>
-          <div className="text-sm text-gray-400">NIC: {row.nic}</div>
+          <div className="font-medium text-gray-900">
+            {`${citizen.firstName || ''} ${citizen.lastName || ''}`.trim() || 'N/A'}
+          </div>
+          <div className="text-sm text-gray-500">{citizen.role || 'CITIZEN'}</div>
         </div>
-      )
+      ),
     },
     {
       key: 'phone',
-      header: 'Contact',
-      render: (row: CitizenWithDetails) => (
-        <div>
-          <div className="flex items-center space-x-1">
-            <Phone className="h-3 w-3 text-gray-400" />
-            <span className="text-sm">{row.phone}</span>
-          </div>
-          <div className="flex items-center space-x-1 mt-1">
-            <Mail className="h-3 w-3 text-gray-400" />
-            <span className="text-xs text-gray-500 truncate">{row.email}</span>
-          </div>
+      header: 'Phone',
+      render: (citizen: User) => (
+        <div className="text-sm text-gray-900">
+          {citizen.phone || 'N/A'}
         </div>
-      )
+      ),
     },
     {
-      key: 'status',
+      key: 'isActive',
       header: 'Status',
-      render: (row: CitizenWithDetails) => (
-        <div className="space-y-1">
-          <span className={getStatusBadge(row.status)}>
-            {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-          </span>
-        </div>
-      )
+      render: (citizen: User) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          citizen.isActive 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {citizen.isActive ? 'Active' : 'Inactive'}
+        </span>
+      ),
     },
     {
-      key: 'totalAppointments',
-      header: 'Activity',
-      render: (row: CitizenWithDetails) => (
-        <div className="text-sm">
-          <div>{row.totalAppointments} appointments</div>
-          <div className="text-gray-500">{row.completedAppointments} completed</div>
-          {row.averageRating > 0 && (
-            <div className="flex items-center space-x-1">
-              <Star className="h-3 w-3 text-yellow-500" />
-              <span className="text-xs">{row.averageRating.toFixed(1)}</span>
-            </div>
-          )}
+      key: 'createdAt',
+      header: 'Created',
+      render: (citizen: User) => (
+        <div className="text-sm text-gray-900">
+          {citizen.createdAt ? new Date(citizen.createdAt).toLocaleDateString() : 'N/A'}
         </div>
-      )
-    },
-    {
-      key: 'registrationDate',
-      header: 'Registration',
-      render: (row: CitizenWithDetails) => (
-        <div className="text-sm">
-          <div>{row.registrationDate}</div>
-          {row.lastLoginDate && (
-            <div className="text-gray-500">Last: {row.lastLoginDate}</div>
-          )}
-        </div>
-      )
+      ),
     },
     {
       key: 'actions',
       header: 'Actions',
-      render: (row: CitizenWithDetails) => (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleViewCitizen(row)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleEditCitizen(row)}
-            >
-              <Edit3 className="h-4 w-4" />
-            </Button>
+      render: (citizen: User) => (
+        <div className="flex space-x-2">
+          {isSuperAdmin && ( // Only Super Admin can edit/view appointments
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleEdit(citizen)}
+                className="text-green-600 hover:text-green-700"
+              >
+                <Edit3 size={16} />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleViewAppointments(citizen)}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                <Eye size={16} /> {/* Changed icon to Eye */}
+              </Button>
+            </>
           )}
         </div>
-      )
-    }
+      ),
+    },
   ];
+
+  // Columns for Appointments Table
+  const appointmentColumns = [
+
+    {
+      key: 'service',
+      header: 'Service',
+      render: (appt: Appointment) => appt.service?.serviceName || 'N/A',
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (appt: Appointment) => appt.department?.departmentName || 'N/A',
+    },
+    {
+      key: 'date_time',
+      header: 'Date & Time',
+      render: (appt: Appointment) => new Date(appt.date_time).toLocaleString(),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (appt: Appointment) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          appt.status === 'completed' 
+            ? 'bg-green-100 text-green-800' 
+            : appt.status === 'cancelled' 
+            ? 'bg-red-100 text-red-800' 
+            : 'bg-yellow-100 text-yellow-800'
+        }`}>
+          {appt.status}
+        </span>
+      ),
+    },
+    {
+      key: 'appointmentType',
+      header: 'Type',
+      render: (appt: Appointment) => appt.appointmentType || 'N/A',
+    },
+    {
+      key: 'priorityLevel',
+      header: 'Priority',
+      render: (appt: Appointment) => appt.priorityLevel || 'N/A',
+    },
+    {
+      key: 'estimatedDuration',
+      header: 'Duration (min)',
+      render: (appt: Appointment) => appt.estimatedDuration || 'N/A',
+    },
+    {
+      key: 'notes',
+      header: 'Notes',
+      render: (appt: Appointment) => appt.notes || 'N/A',
+    },
+    {
+      key: 'serviceCategory',
+      header: 'Service Category',
+      render: (appt: Appointment) => appt.service?.serviceCategory || 'N/A',
+    },
+    {
+      key: 'serviceFee',
+      header: 'Service Fee',
+      render: (appt: Appointment) => appt.service?.feeAmount ? `LKR ${appt.service.feeAmount}` : 'N/A',
+    },
+    {
+      key: 'submittedDocuments',
+      header: 'Documents',
+      render: (appt: Appointment) => appt.submittedDocuments?.length > 0 ? `${appt.submittedDocuments.length} uploaded` : 'None',
+    },
+    {
+      key: 'createdAt',
+      header: 'Created At',
+      render: (appt: Appointment) => appt.createdAt ? new Date(appt.createdAt).toLocaleString() : 'N/A',
+    },
+    {
+      key: 'updatedAt',
+      header: 'Updated At',
+      render: (appt: Appointment) => appt.updatedAt ? new Date(appt.updatedAt).toLocaleString() : 'N/A',
+    },
+  ];
+
+  useEffect(() => {
+    loadCitizens();
+  }, []);
+
+  if (loading && citizens.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+          <p className="text-gray-600">Loading citizens...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Citizen Management</h1>
-          <p className="text-gray-600">
-            {isAdmin 
-              ? "Manage all citizen profiles and account security system-wide" 
-              : "View citizen profiles and history related to your department"
-            }
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Citizens</h1>
+          <p className="text-gray-600">Manage citizen user accounts</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button 
-            variant="outline" 
-            onClick={exportCitizens}
-            className="flex items-center space-x-2"
-          >
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button>
-          {isAdmin && (
-            <Button 
-              onClick={handleAddCitizen}
-              className="flex items-center space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Citizen</span>
-            </Button>
-          )}
-        </div>
+        {/* No "Add Citizen" button as per API docs */}
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="text-red-800">
+              <strong>Error:</strong> {error}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Citizens"
-          value={citizenStats.totalCitizens.toLocaleString()}
+          value={stats.total.toString()}
           icon={Users}
-          trend="+12%"
-          trendDirection="up"
+          color="blue"
+        />
+        <StatCard
+          title="Active Citizens"
+          value={stats.active.toString()}
+          icon={UserCheck}
+          color="green"
+        />
+        <StatCard
+          title="Inactive Citizens"
+          value={stats.inactive.toString()}
+          icon={UserX}
+          color="red"
         />
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters & Search</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by name, email, NIC, phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <Select
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' }
-                ]}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+     
 
       {/* Citizens Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>
-              Citizens ({filteredCitizens.length})
-            </CardTitle>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table
-            data={filteredCitizens}
-            columns={columns}
-          />
-        </CardContent>
+        <Table
+          data={filteredCitizens.map(citizen => ({ ...citizen, id: citizen.userId || citizen.email || 'unknown' }))}
+          columns={columns}
+          loading={loading}
+          emptyMessage="No citizens found"
+        />
       </Card>
 
-      {/* View Citizen Modal */}
+      {/* Edit Citizen Modal */}
       <Modal
-        isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        title="Citizen Profile"
-        size="xl"
-      >
-        {selectedCitizen && (
-          <div className="space-y-6">
-            {/* Header with Status */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{selectedCitizen.name}</h3>
-                <p className="text-gray-600">{selectedCitizen.id}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className={getStatusBadge(selectedCitizen.status)}>
-                  {selectedCitizen.status.charAt(0).toUpperCase() + selectedCitizen.status.slice(1)}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Personal Information</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <CreditCard className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">NIC Number</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.nic}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Date of Birth</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.dateOfBirth || 'Not provided'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Gender</p>
-                      <p className="text-sm text-gray-500 capitalize">{selectedCitizen.gender || 'Not specified'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Occupation</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.occupation || 'Not provided'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Contact Information</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Email</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Phone</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.phone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Emergency Contact</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.emergencyContact || 'Not provided'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Address</p>
-                      <p className="text-sm text-gray-500">{selectedCitizen.address || 'Not provided'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Account Statistics */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-3">Account Statistics</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Total Appointments</p>
-                  <p className="font-semibold text-gray-900">{selectedCitizen.totalAppointments}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Completed</p>
-                  <p className="font-semibold text-gray-900">{selectedCitizen.completedAppointments}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Average Rating</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedCitizen.averageRating > 0 ? `${selectedCitizen.averageRating.toFixed(1)}/5.0` : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Last Login</p>
-                  <p className="font-semibold text-gray-900">{selectedCitizen.lastLoginDate || 'Never'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Admin Actions */}
-            {isAdmin && (
-              <div className="flex items-center space-x-3 pt-4 border-t">
-                <Button
-                  variant={selectedCitizen.status === 'active' ? 'danger' : 'primary'}
-                  onClick={() => handleStatusUpdate(selectedCitizen.id, selectedCitizen.status === 'active' ? 'inactive' : 'active')}
-                >
-                  {selectedCitizen.status === 'active' ? 'Deactivate' : 'Activate'} Account
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {/* Add/Edit Citizen Modal */}
-      <Modal
-        isOpen={isAddModalOpen || isEditModalOpen}
+        isOpen={showEditModal}
         onClose={() => {
-          setIsAddModalOpen(false);
-          setIsEditModalOpen(false);
+          setShowEditModal(false);
           setSelectedCitizen(null);
+          resetForm();
         }}
-        title={selectedCitizen ? 'Edit Citizen' : 'Add New Citizen'}
+        title="Edit Citizen"
         size="lg"
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {selectedCitizen && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name *
+                </label>
+                <Input
+                  type="text"
+                  value={citizenForm.firstName}
+                  onChange={(e) => setCitizenForm({ ...citizenForm, firstName: e.target.value })}
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
+                <Input
+                  type="text"
+                  value={citizenForm.lastName}
+                  onChange={(e) => setCitizenForm({ ...citizenForm, lastName: e.target.value })}
+                  placeholder="Enter last name"
+                />
+              </div>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+                Phone
               </label>
               <Input
-                value={newCitizen.name}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter full name"
+                type="text"
+                value={citizenForm.phone}
+                onChange={(e) => setCitizenForm({ ...citizenForm, phone: e.target.value })}
+                placeholder="+94771234567"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address *
+                National ID
               </label>
               <Input
-                type="email"
-                value={newCitizen.email}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                NIC Number *
-              </label>
-              <Input
-                value={newCitizen.nic}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, nic: e.target.value }))}
-                placeholder="Enter NIC number"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number *
-              </label>
-              <Input
-                value={newCitizen.phone}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="Enter phone number"
+                type="text"
+                value={citizenForm.nationalId}
+                onChange={(e) => setCitizenForm({ ...citizenForm, nationalId: e.target.value })}
+                placeholder="e.g., 123456789V"
               />
             </div>
             <div>
@@ -723,90 +546,100 @@ export const Citizens: React.FC = () => {
               </label>
               <Input
                 type="date"
-                value={newCitizen.dateOfBirth}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                value={citizenForm.dateOfBirth}
+                onChange={(e) => setCitizenForm({ ...citizenForm, dateOfBirth: e.target.value })}
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Address Street
+                </label>
+                <Input
+                  type="text"
+                  value={citizenForm.address.street}
+                  onChange={(e) => setCitizenForm({ ...citizenForm, address: { ...citizenForm.address, street: e.target.value } })}
+                  placeholder="123 Main St"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Address City
+                </label>
+                <Input
+                  type="text"
+                  value={citizenForm.address.city}
+                  onChange={(e) => setCitizenForm({ ...citizenForm, address: { ...citizenForm.address, city: e.target.value } })}
+                  placeholder="Colombo"
+                />
+              </div>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gender
+                Status
               </label>
               <Select
-                value={newCitizen.gender}
-                onChange={(value) => setNewCitizen(prev => ({ ...prev, gender: value }))}
+                value={citizenForm.isActive ? 'active' : 'inactive'}
+                onChange={(e) => setCitizenForm({ ...citizenForm, isActive: e.target.value === 'active' })}
                 options={[
-                  { value: 'male', label: 'Male' },
-                  { value: 'female', label: 'Female' },
-                  { value: 'other', label: 'Other' }
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
                 ]}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Language
-              </label>
-              <Select
-                value={newCitizen.preferredLanguage}
-                onChange={(value) => setNewCitizen(prev => ({ ...prev, preferredLanguage: value }))}
-                options={[
-                  { value: 'english', label: 'English' },
-                  { value: 'sinhala', label: 'Sinhala' },
-                  { value: 'tamil', label: 'Tamil' }
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Occupation
-              </label>
-              <Input
-                value={newCitizen.occupation}
-                onChange={(e) => setNewCitizen(prev => ({ ...prev, occupation: e.target.value }))}
-                placeholder="Enter occupation"
-              />
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedCitizen(null);
+                  resetForm();
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                loading={loading}
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Address
-            </label>
-            <textarea
-              value={newCitizen.address}
-              onChange={(e) => setNewCitizen(prev => ({ ...prev, address: e.target.value }))}
-              rows={3}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Enter full address"
-            />
-          </div>
+        )}
+      </Modal>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Emergency Contact
-            </label>
-            <Input
-              value={newCitizen.emergencyContact}
-              onChange={(e) => setNewCitizen(prev => ({ ...prev, emergencyContact: e.target.value }))}
-              placeholder="Enter emergency contact number"
-            />
+      {/* View Appointments Modal */}
+      <Modal
+        isOpen={showAppointmentsModal}
+        onClose={() => {
+          setShowAppointmentsModal(false);
+          setSelectedCitizen(null);
+          setCitizenAppointments([]);
+        }}
+        title={`Appointments for ${selectedCitizen?.firstName} ${selectedCitizen?.lastName}`}
+        size="xl"
+      >
+        {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+              <p className="text-gray-600">Loading appointments...</p>
+            </div>
           </div>
-
-          <div className="flex items-center space-x-3 pt-4">
-            <Button onClick={handleSaveCitizen}>
-              {selectedCitizen ? 'Update Citizen' : 'Add Citizen'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsAddModalOpen(false);
-                setIsEditModalOpen(false);
-                setSelectedCitizen(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+        ) : citizenAppointments.length === 0 ? (
+          <div className="text-center text-gray-500 p-6">No appointments found for this citizen.</div>
+        ) : (
+          <Table
+            data={citizenAppointments.map(appt => ({ ...appt, id: appt.id || 'unknown' }))}
+            columns={appointmentColumns}
+            loading={loading}
+            emptyMessage="No appointments found"
+          />
+        )}
       </Modal>
     </div>
   );

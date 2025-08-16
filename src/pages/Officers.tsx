@@ -96,7 +96,7 @@ const ServiceAssignment: React.FC<{
                     <p className="font-medium">{service.serviceName}</p>
                     <p className="text-sm text-gray-500">{service.serviceCategory}</p>
                   </div>
-                  <Button size="sm" variant="destructive" onClick={() => removeService(service.serviceId!)}>
+                  <Button size="sm" variant="danger" onClick={() => removeService(service.serviceId!)}>
                     Remove
                   </Button>
                 </div>
@@ -556,7 +556,7 @@ export const Officers: React.FC = () => {
           resetForm();
         }}
         title="Create New Officer"
-        size="2xl"
+        size="xl"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -653,7 +653,7 @@ export const Officers: React.FC = () => {
           resetForm();
         }}
         title="Edit Officer"
-        size="2xl"
+        size="xl"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

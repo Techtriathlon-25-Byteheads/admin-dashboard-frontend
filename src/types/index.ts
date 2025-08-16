@@ -1,23 +1,4 @@
-export interface User {
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName?: string;
-  role: 'ADMIN' | 'SUPER_ADMIN' | 'CITIZEN';
-  assignedServices?: string[];
-  isActive: boolean;
-  // Citizen-specific fields
-  nic?: string;
-  contactNumber?: string;
-  dob?: string;
-  address?: {
-    street: string;
-    city: string;
-  };
-  fullName?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+
 
 export interface Department {
   departmentId: string;
@@ -49,7 +30,7 @@ export interface Service {
   feeAmount: number;
   requiredDocuments: {
     usual: Record<string, boolean>;
-    other: string;
+    other: string[];
   };
   eligibilityCriteria: string;
   onlineAvailable: boolean;
@@ -76,45 +57,41 @@ export interface Officer {
   department?: Department;
 }
 
-export interface Citizen {
-  id: string;
-  name: string;
-  email: string;
-  nic: string;
-  phone: string;
-  status: 'active' | 'inactive';
-}
+
 
 export interface Appointment {
-  id: string;
-  citizen_id: string;
-  service_id: string;
-  officer_id: string;
-  // Backend uses: scheduled | confirmed | completed | cancelled (plus we keep legacy pending/no-show for compatibility)
-  status: 'scheduled' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
-  date_time: string;
-  documents_json: string;
-  qr_code: string;
-  reference_no: string;
-  appointment_remarks?: string;
-  citizen?: Citizen;
-  service?: Service;
-  officer?: Officer;
-  documents?: Document[];
+  appointmentId: string;
+  userId: string;
+  departmentId: string;
+  serviceId: string;
+  reportId: string | null;
+  appointmentDate: string;
+  appointmentTime: string;
+  status: 'completed' | 'scheduled' | 'cancelled';
+  appointmentType: 'new_application' | 'other';
+  priorityLevel: 'normal' | 'high';
+  queueNumber: number | null;
+  estimatedDuration: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  user: User;
+  service: Service;
+  submittedDocuments: SubmittedDocument[];
 }
 
-export interface Document {
-  id: string;
-  appointment_id: string;
-  document_name: string;
-  document_type: string;
-  file_url: string;
-  file_type: 'image' | 'pdf';
-  status: 'pending' | 'approved' | 'rejected';
-  remarks?: string;
-  reviewed_by?: string;
-  reviewed_at?: string;
-  uploaded_at: string;
+export interface SubmittedDocument {
+  documentId: string;
+  appointmentId: string;
+  externalDocumentId: string;
+  filePath: string;
+  mimeType: string;
+  originalFilename: string;
+  fileSizeBytes: number;
+  isApproved: boolean;
+  remarks: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Feedback {

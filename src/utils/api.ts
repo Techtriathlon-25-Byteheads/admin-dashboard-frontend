@@ -158,7 +158,7 @@ export const api = {
     serviceCategory: string;
     processingTimeDays?: number;
     feeAmount: number;
-    requiredDocuments: { usual: Record<string, boolean>; other: string };
+    requiredDocuments: { usual: Record<string, boolean>; other: string[] };
     eligibilityCriteria: string;
     onlineAvailable: boolean;
     appointmentRequired: boolean;
@@ -175,7 +175,7 @@ export const api = {
     serviceCategory?: string;
     processingTimeDays?: number;
     feeAmount?: number;
-    requiredDocuments?: { usual: Record<string, boolean>; other: string };
+    requiredDocuments?: { usual: Record<string, boolean>; other: string[] };
     eligibilityCriteria?: string;
     onlineAvailable?: boolean;
     appointmentRequired?: boolean;
@@ -194,6 +194,16 @@ export const api = {
   
   // Admin appointments (scoped by role)
   getAdminAppointments: () => apiRequest('/admin/appointments'),
+  
+  updateAdminAppointment: (id: string, data: { status?: string; notes?: string }) =>
+    apiRequest(`/admin/appointments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteAdminAppointment: (id: string) =>
+    apiRequest(`/admin/appointments/${id}`, {
+      method: 'DELETE',
+    }),
   createAdminAppointment: (data: {
     userId: string;
     departmentId: string;
@@ -263,22 +273,22 @@ export const api = {
     }),
   
   // Citizen management functions
-  getCitizens: () => apiRequest('/admin/users'),
+  getCitizens: () => apiRequest('/admin/citizens'),
+  getCitizenById: (id: string) => apiRequest(`/admin/citizens/${id}`),
   updateCitizen: (userId: string, data: {
-    email?: string;
     firstName?: string;
     lastName?: string;
+    phone?: string;
+    nationalId?: string;
+    dateOfBirth?: string; // Assuming ISO string format
+    address?: { street?: string; city?: string };
     isActive?: boolean;
-    fullName?: string;
-    nic?: string;
-    contactNumber?: string;
-    dob?: string;
-    address?: { street: string; city: string };
   }) =>
-    apiRequest(`/admin/users/${userId}`, {
+    apiRequest(`/admin/citizens/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  getCitizenAppointments: (id: string) => apiRequest(`/admin/citizens/${id}/appointments`),
 
   // Feedback (NOTE: Endpoints not present in current API docs; implemented optimistically.)
   getFeedback: () => apiRequest('/admin/feedback'),

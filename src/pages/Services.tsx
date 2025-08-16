@@ -35,7 +35,7 @@ const serviceSchema = z.object({
     .min(0, 'Fee amount cannot be negative'),
   requiredDocuments: z.object({
     usual: z.record(z.string(), z.boolean()),
-    other: z.string().optional(),
+    other: z.array(z.string()).optional(),
   }).optional(),
   eligibilityCriteria: z
     .string()
@@ -108,7 +108,7 @@ export const Services: React.FC = () => {
       onlineAvailable: false,
       appointmentRequired: true,
       maxCapacityPerSlot: 10,
-      requiredDocuments: { usual: {}, other: '' },
+      requiredDocuments: { usual: {}, other: [] },
       operationalHours: {},
     }
   });
@@ -145,9 +145,9 @@ export const Services: React.FC = () => {
     if (editingService) {
       reset(editingService as any);
       if (editingService.requiredDocuments && typeof editingService.requiredDocuments === 'object' && 'usual' in editingService.requiredDocuments) {
-        setValue('requiredDocuments', editingService.requiredDocuments as { usual: Record<string, boolean>; other: string });
+        setValue('requiredDocuments', editingService.requiredDocuments as { usual: Record<string, boolean>; other: string[] });
       } else {
-        setValue('requiredDocuments', { usual: {}, other: '' });
+        setValue('requiredDocuments', { usual: {}, other: [] });
       }
 
       if (editingService?.operationalHours) {
@@ -254,8 +254,9 @@ export const Services: React.FC = () => {
     setValue('requiredDocuments', { ...requiredDocuments, usual: newUsual } as any);
   };
 
-  const handleOtherDocumentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue('requiredDocuments', { ...requiredDocuments, other: e.target.value } as any);
+  const handleOtherDocumentsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const otherDocuments = e.target.value.split('\n');
+    setValue('requiredDocuments', { ...requiredDocuments, other: otherDocuments } as any);
   };
 
   const handleTimeSlotToggle = (day: string, time: string) => {
@@ -572,12 +573,17 @@ export const Services: React.FC = () => {
                 </label>
               ))}
             </div>
-            <Input
-              label="Other Documents"
-              value={requiredDocuments?.other || ''}
+            <textarea
+              value={Array.isArray(requiredDocuments?.other) ? requiredDocuments?.other.join('\n') : requiredDocuments?.other || ''}
               onChange={handleOtherDocumentsChange}
-              placeholder="e.g., A letter from your grandmother"
+              placeholder="Add additional documents, each on a new line"
               disabled={loading}
+              className={`
+                block w-full rounded-md border-gray-300 shadow-sm 
+                focus:border-primary-500 focus:ring-primary-500 focus:ring-1
+                disabled:bg-gray-50 disabled:cursor-not-allowed
+              `}
+              rows={3}
             />
             <p className="text-xs text-gray-500">
               Select the documents that citizens need to provide for this service.
