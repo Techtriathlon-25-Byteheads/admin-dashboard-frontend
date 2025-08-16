@@ -7,7 +7,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { Departments } from '../pages/Departments';
 import { Services } from '../pages/Services';
 import { Appointments } from '../pages/Appointments';
-import { Citizens } from '../pages/Citizens';
+// import Citizens from '../pages/Citizens';
 import { Officers } from '../pages/Officers';
 import { Feedback } from '../pages/Feedback';
 import { AppointmentDetails } from '../pages/AppointmentDetails';
@@ -103,7 +103,7 @@ export const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
+      {/* <Route
         path="/citizens"
         element={
           <ProtectedRoute>
@@ -112,7 +112,7 @@ export const AppRoutes: React.FC = () => {
             </AdminRoute>
           </ProtectedRoute>
         }
-      />
+      /> */}
 
       <Route
         path="/officers"

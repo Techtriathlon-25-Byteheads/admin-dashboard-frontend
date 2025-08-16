@@ -10,9 +10,10 @@ interface TableProps<T> {
   data: T[];
   columns: Column<T>[];
   loading?: boolean;
+  rowKey?: (item: T, index: number) => string | number;
 }
 
-export function Table<T extends { id: string }>({ data, columns, loading = false }: TableProps<T>) {
+export function Table<T>({ data, columns, loading = false, rowKey }: TableProps<T>) {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -49,15 +50,24 @@ export function Table<T extends { id: string }>({ data, columns, loading = false
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                {columns.map((column) => (
-                  <td key={String(column.key)} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {column.render ? column.render(item) : String(item[column.key] || '')}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {data.map((item, index) => {
+              // Derive a stable key: explicit rowKey prop > common id fields > index fallback
+              const derivedKey = rowKey
+                ? rowKey(item, index)
+                : (typeof item === 'object' && item !== null && (
+                    // @ts-ignore - runtime key discovery
+                    item.id || item.userId || item.serviceId || item.department_id || item._id || index
+                  ));
+              return (
+                <tr key={derivedKey} className="hover:bg-gray-50">
+                  {columns.map((column) => (
+                    <td key={String(column.key)} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {column.render ? column.render(item) : String((item as any)[column.key] || '')}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

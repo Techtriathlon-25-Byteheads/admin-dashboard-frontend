@@ -97,7 +97,7 @@ async function apiRequest<T>(
 // API endpoints
 export const api = {
   // Analytics
-  getAnalytics: () => apiRequest('/v1/analytics'),
+  getAnalytics: () => apiRequest('/analytics'),
   
   // Admin login
   adminLogin: (email: string, password: string) =>
@@ -108,16 +108,122 @@ export const api = {
   
   // Departments
   getDepartments: () => apiRequest('/departments'),
+  createDepartment: (data: { name: string; description: string }) =>
+    apiRequest('/departments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateDepartment: (id: string, data: { name: string; description: string }) =>
+    apiRequest(`/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteDepartment: (id: string) =>
+    apiRequest(`/departments/${id}`, {
+      method: 'DELETE',
+    }),
   
   // Services
   getServices: () => apiRequest('/services'),
+  createService: (data: {
+    serviceName: string;
+    description: string;
+    serviceCategory: string;
+    processingTimeDays?: number;
+    feeAmount: number;
+    requiredDocuments: Record<string, boolean>;
+    eligibilityCriteria: string;
+    onlineAvailable: boolean;
+    appointmentRequired: boolean;
+    maxCapacityPerSlot: number;
+  }) =>
+    apiRequest('/services', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateService: (id: string, data: {
+    serviceName?: string;
+    description?: string;
+    serviceCategory?: string;
+    processingTimeDays?: number;
+    feeAmount?: number;
+    requiredDocuments?: Record<string, boolean>;
+    eligibilityCriteria?: string;
+    onlineAvailable?: boolean;
+    appointmentRequired?: boolean;
+    maxCapacityPerSlot?: number;
+    isActive?: boolean;
+  }) =>
+    apiRequest(`/services/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteService: (id: string) =>
+    apiRequest(`/services/${id}`, {
+      method: 'DELETE',
+    }),
   
   // Admin appointments (scoped by role)
   getAdminAppointments: () => apiRequest('/admin/appointments'),
   
   // Admin users management (Super Admin only)
-  getAdminUsers: () => apiRequest('/v1/admin/admins'),
+  getAdminUsers: () => apiRequest('/admin/admins'),
+  createAdminUser: (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName?: string;
+    serviceIds?: string[];
+  }) =>
+    apiRequest('/admin/admins', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAdminUser: (userId: string, data: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    isActive?: boolean;
+    serviceIds?: string[];
+  }) =>
+    apiRequest(`/admin/admins/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteAdminUser: (userId: string) =>
+    apiRequest(`/admin/admins/${userId}`, {
+      method: 'DELETE',
+    }),
   
   // All users (Super Admin only)
-  getAllUsers: () => apiRequest('/v1/admin/users'),
+  getAllUsers: () => apiRequest('/admin/users'),
+  updateUser: (userId: string, data: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    isActive?: boolean;
+    role?: string;
+  }) =>
+    apiRequest(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  
+  // Citizen management functions
+  getCitizens: () => apiRequest('/admin/users'),
+  updateCitizen: (userId: string, data: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    isActive?: boolean;
+    fullName?: string;
+    nic?: string;
+    contactNumber?: string;
+    dob?: string;
+    address?: { street: string; city: string };
+  }) =>
+    apiRequest(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };

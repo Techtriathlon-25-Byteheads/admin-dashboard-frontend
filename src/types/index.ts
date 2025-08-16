@@ -4,9 +4,20 @@ export interface User {
   firstName?: string;
   lastName?: string;
   name?: string;
-  role: 'ADMIN' | 'SUPER_ADMIN';
+  role: 'ADMIN' | 'SUPER_ADMIN' | 'CITIZEN';
   assignedServices?: string[];
   isActive: boolean;
+  // Citizen-specific fields
+  nic?: string;
+  contactNumber?: string;
+  dob?: string;
+  address?: {
+    street: string;
+    city: string;
+  };
+  fullName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Department {
@@ -19,11 +30,26 @@ export interface Department {
 }
 
 export interface Service {
-  id: string;
-  department_id: string;
-  name: string;
-  requirements_json: string;
-  duration_minutes: number;
+  serviceId?: string;
+  id?: string; // for backwards compatibility
+  serviceName: string;
+  description: string;
+  serviceCategory: string;
+  processingTimeDays?: number;
+  feeAmount: number;
+  requiredDocuments: Record<string, boolean>;
+  eligibilityCriteria: string;
+  onlineAvailable: boolean;
+  appointmentRequired: boolean;
+  maxCapacityPerSlot: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Legacy fields for compatibility
+  department_id?: string;
+  name?: string;
+  requirements_json?: string;
+  duration_minutes?: number;
   department?: Department;
 }
 
