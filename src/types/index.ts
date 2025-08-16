@@ -87,6 +87,7 @@ export interface Citizen {
 
 export interface Appointment {
   id: string;
+  appointmentId?: string;
   citizen_id: string;
   service_id: string;
   officer_id: string;
@@ -119,10 +120,46 @@ export interface Document {
 
 export interface Feedback {
   id: string;
-  appointment_id: string;
+  appointmentId: string;
+  appointment_id: string; // Legacy field for compatibility
+  userId?: string;
   rating: number;
-  comments: string;
-  appointment?: Appointment;
+  remarks: string;
+  comments?: string; // Legacy field for compatibility
+  createdAt?: string;
+  updatedAt?: string;
+  status?: 'new' | 'resolved';
+  appointment?: {
+    appointmentId?: string;
+    appointmentDate?: string;
+    appointmentTime?: string;
+    date_time?: string;
+    citizen?: {
+      userId?: string;
+      fullName?: string;
+      name?: string;
+    };
+    service?: {
+      serviceId?: string;
+      serviceName?: string;
+      name?: string;
+      department?: {
+        departmentId?: string;
+        departmentName?: string;
+        name?: string;
+      };
+    };
+  };
+}
+
+export interface FeedbackStats {
+  totalFeedback: number;
+  averageRating: number;
+  responseRate: number;
+  positiveFeedback: number;
+  positive: number;
+  neutral: number;
+  negative: number;
 }
 
 export interface Notification {

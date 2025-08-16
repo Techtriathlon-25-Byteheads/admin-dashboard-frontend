@@ -4,15 +4,15 @@ import {
   Star,
   Search,
   Eye,
-  Calendar,
-  User,
-  Building2,
   BarChart3,
   Download,
   RotateCcw,
   ThumbsUp,
   ThumbsDown,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  CheckCircle,
+  FileText
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -22,7 +22,7 @@ import { Modal } from '../components/ui/Modal';
 import { Table } from '../components/ui/Table';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthStore } from '../store/authStore';
-import { Feedback as FeedbackType } from '../types';
+import { Feedback as FeedbackType, FeedbackStats, Appointment, Citizen, Document, Service } from '../types';
 import { api } from '../utils/api';
 
 interface FeedbackWithDerived extends FeedbackType {
@@ -31,17 +31,9 @@ interface FeedbackWithDerived extends FeedbackType {
   departmentName?: string;
   appointmentDate?: string;
   appointmentTime?: string;
-  feedbackDate?: string; // fallback using createdAt if provided by API in future
+  feedbackDate?: string;
   sentiment: 'positive' | 'neutral' | 'negative';
-}
-
-// Local statistics derived from current dataset
-interface LocalFeedbackStats {
-  total: number;
-  averageRating: number;
-  positive: number;
-  neutral: number;
-  negative: number;
+  isResolved?: boolean;
 }
 
 export const Feedback: React.FC = () => {
@@ -58,74 +50,148 @@ export const Feedback: React.FC = () => {
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackWithDerived | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<LocalFeedbackStats>({ total: 0, averageRating: 0, positive: 0, neutral: 0, negative: 0 });
+  const [stats, setStats] = useState<FeedbackStats>({ 
+    totalFeedback: 0, 
+    averageRating: 0, 
+    responseRate: 0,
+    positiveFeedback: 0,
+    positive: 0, 
+    neutral: 0, 
+    negative: 0 
+  });
+  const [appointmentDetails, setAppointmentDetails] = useState<Appointment | null>(null);
+  const [citizenDetails, setCitizenDetails] = useState<Citizen | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
 
-  // Map backend feedback shape (currently unspecified in API docs) to UI requirements.
+  // New feedback form state
+  const [newFeedback, setNewFeedback] = useState({
+    appointmentId: '',
+    rating: 5,
+    remarks: ''
+  });
+
+  // Map backend feedback shape to UI requirements
   const deriveSentiment = (rating: number): 'positive' | 'neutral' | 'negative' => {
     if (rating >= 4) return 'positive';
     if (rating === 3) return 'neutral';
     return 'negative';
   };
 
-  const computeStats = useCallback((items: FeedbackWithDerived[]): LocalFeedbackStats => {
-    if (!items.length) return { total: 0, averageRating: 0, positive: 0, neutral: 0, negative: 0 };
-    const total = items.length;
-    const sum = items.reduce((acc, f) => acc + (f.rating || 0), 0);
-    const positive = items.filter(f => f.sentiment === 'positive').length;
-    const neutral = items.filter(f => f.sentiment === 'neutral').length;
-    const negative = items.filter(f => f.sentiment === 'negative').length;
-    return { total, averageRating: parseFloat((sum / total).toFixed(2)), positive, neutral, negative };
-  }, []);
-
   const loadFeedback = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await api.getFeedback();
-    if (err) {
-      setError(err);
-      setLoading(false);
-      return;
-    }
-    // Assume data is an array; enrich with derived fields.
-    // Define minimal backend feedback shape to avoid pervasive any usage.
-  interface BackendCitizen { fullName?: string; name?: string; }
-  interface BackendDepartment { name?: string; }
-  interface BackendService { serviceName?: string; name?: string; department?: BackendDepartment; }
-  interface BackendAppointment { appointmentDate?: string; appointmentTime?: string; date_time?: string; citizen?: BackendCitizen; service?: BackendService; }
-  interface BackendFeedback { id: string; appointment_id: string; rating: number; comments: string; appointment?: BackendAppointment; createdAt?: string; updatedAt?: string; }
-    const arr: BackendFeedback[] = Array.isArray(data) ? (data as BackendFeedback[]) : [];
-    const mapped: FeedbackWithDerived[] = arr.map((f: BackendFeedback) => {
-  const appointment: BackendAppointment = f.appointment || {};
-  const service: BackendService = appointment.service || {};
-  const department: BackendDepartment = service.department || {};
-      const appointmentDateISO: string = appointment.appointmentDate || appointment.date_time || '';
-      const appointmentTimeISO: string = appointment.appointmentTime || '';
-      const dateObj = appointmentDateISO ? new Date(appointmentDateISO) : null;
-      const timeObj = appointmentTimeISO ? new Date(appointmentTimeISO) : null;
-      return {
-        ...f,
-        citizenName: appointment.citizen?.fullName || appointment.citizen?.name || 'Citizen',
-        serviceName: service.serviceName || service.name || 'Service',
-        departmentName: department.name || 'Department',
-        appointmentDate: dateObj ? dateObj.toISOString().split('T')[0] : undefined,
-        appointmentTime: timeObj ? timeObj.toISOString().split('T')[1]?.substring(0, 5) : undefined,
-        feedbackDate: f.createdAt || f.updatedAt,
-        sentiment: deriveSentiment(f.rating || 0),
-      } as FeedbackWithDerived;
-    });
-    setFeedback(mapped);
-    setFilteredFeedback(mapped);
-    setStats(computeStats(mapped));
-    setLoading(false);
-  }, [computeStats]);
+    
+    try {
+      const { data: feedbackList, error: err } = await api.getFeedback();
+      if (err) {
+        setError(err);
+        setLoading(false);
+        return;
+      }
 
-  useEffect(() => { loadFeedback(); }, [loadFeedback]);
+      const feedbackItems: FeedbackType[] = Array.isArray(feedbackList) ? feedbackList : [];
+
+      const enrichedFeedbackPromises = feedbackItems.map(async (f) => {
+        try {
+          let citizenName = 'N/A';
+          let serviceName = 'N/A';
+          let departmentName = 'N/A';
+          let appointmentDate: string | undefined;
+          let appointmentTime: string | undefined;
+
+          if (f.appointmentId) {
+            const { data: appointment } = await api.getAppointmentById(f.appointmentId);
+
+            if (appointment) {
+              const dateObj = appointment.date_time ? new Date(appointment.date_time) : null;
+              appointmentDate = dateObj ? dateObj.toISOString().split('T')[0] : undefined;
+              appointmentTime = dateObj ? dateObj.toTimeString().split(' ')[0].substring(0, 5) : undefined;
+
+              const citizenPromise = appointment.citizen_id ? api.getCitizenById(appointment.citizen_id) : Promise.resolve({ data: null });
+              const servicePromise = appointment.service_id ? api.getServiceById(appointment.service_id) : Promise.resolve({ data: null });
+
+              const [citizenResponse, serviceResponse] = await Promise.all([citizenPromise, servicePromise]);
+              
+              if (citizenResponse.data) {
+                citizenName = (citizenResponse.data as Citizen).name || 'N/A';
+              }
+              
+              if (serviceResponse.data) {
+                const service = serviceResponse.data as Service;
+                serviceName = service.serviceName || service.name || 'N/A';
+                if (service.department) {
+                    departmentName = service.department.name || 'N/A';
+                }
+              }
+            }
+          }
+          
+          return {
+            ...f,
+            citizenName,
+            serviceName,
+            departmentName,
+            appointmentDate,
+            appointmentTime,
+            feedbackDate: f.createdAt || f.updatedAt,
+            sentiment: deriveSentiment(f.rating || 0),
+            isResolved: f.status === 'resolved',
+          } as FeedbackWithDerived;
+
+        } catch (error) {
+          console.error(`Failed to enrich feedback ${f.id}:`, error);
+          return {
+            ...f,
+            citizenName: 'Error loading',
+            serviceName: 'Error loading',
+            feedbackDate: f.createdAt || f.updatedAt,
+            sentiment: deriveSentiment(f.rating || 0),
+            isResolved: f.status === 'resolved',
+          } as FeedbackWithDerived;
+        }
+      });
+
+      const mapped = await Promise.all(enrichedFeedbackPromises);
+      
+      setFeedback(mapped);
+      setFilteredFeedback(mapped);
+    } catch (error) {
+      console.error('Failed to load feedback:', error);
+      setError('Failed to load feedback');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadFeedbackStats = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    try {
+      const { data, error: err } = await api.getFeedbackStats();
+      if (err) {
+        console.warn('Failed to load feedback stats:', err);
+        return;
+      }
+      
+      if (data) {
+        setStats(data);
+      }
+    } catch (error) {
+      console.warn('Failed to load feedback stats:', error);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => { 
+    loadFeedback();
+    loadFeedbackStats();
+  }, [loadFeedback, loadFeedbackStats]);
 
   // Filter feedback based on search and filters
   useEffect(() => {
-  let filtered = feedback;
+    let filtered = feedback;
 
     // Search filter
     if (searchTerm) {
@@ -134,7 +200,7 @@ export const Feedback: React.FC = () => {
         (fb.citizenName || '').toLowerCase().includes(term) ||
         (fb.serviceName || '').toLowerCase().includes(term) ||
         (fb.departmentName || '').toLowerCase().includes(term) ||
-        (fb.comments || '').toLowerCase().includes(term)
+        (fb.remarks || fb.comments || '').toLowerCase().includes(term)
       );
     }
 
@@ -196,6 +262,32 @@ export const Feedback: React.FC = () => {
     setFilteredFeedback(filtered);
   }, [searchTerm, ratingFilter, sentimentFilter, departmentFilter, dateFilter, feedback, isAdmin]);
 
+  const handleCreateFeedback = async () => {
+    if (!newFeedback.appointmentId || !newFeedback.remarks.trim()) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error: err } = await api.createFeedback(newFeedback);
+      if (err) {
+        setError(err);
+        return;
+      }
+      
+      setIsCreateModalOpen(false);
+      setNewFeedback({ appointmentId: '', rating: 5, remarks: '' });
+      loadFeedback();
+      loadFeedbackStats();
+    } catch (error) {
+      console.error('Failed to create feedback:', error);
+      setError('Failed to create feedback');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRatingStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, index) => (
       <Star
@@ -234,31 +326,91 @@ export const Feedback: React.FC = () => {
     }
   };
 
-  const handleViewFeedback = (feedback: FeedbackWithDerived) => {
+  const handleViewFeedback = async (feedback: FeedbackWithDerived) => {
     setSelectedFeedback(feedback);
     setIsViewModalOpen(true);
+    setLoading(true);
+    try {
+      if (feedback.appointmentId) {
+        const { data: appData, error: appError } = await api.getAppointmentById(feedback.appointmentId);
+        if (appError) throw new Error(appError);
+        setAppointmentDetails(appData);
+  
+        if (appData?.citizen_id) {
+          const { data: citizenData, error: citizenError } = await api.getCitizenById(appData.citizen_id);
+          if (citizenError) throw new Error(citizenError);
+          setCitizenDetails(citizenData);
+        }
+
+        const { data: docData, error: docError } = await api.getDocumentsForAppointment(feedback.appointmentId);
+        if(docError) throw new Error(docError);
+        setDocuments(docData || []);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResolveFeedback = async (feedbackId: string) => {
+    try {
+      setLoading(true);
+      // Assuming an API endpoint exists to update feedback status
+      // await api.updateFeedbackStatus(feedbackId, 'resolved');
+      console.log(`Feedback ${feedbackId} marked as resolved.`);
+      // For now, we'll just update the local state
+      setFeedback(prev => prev.map(f => f.id === feedbackId ? { ...f, isResolved: true } : f));
+      loadFeedback(); // Reload to be sure
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to resolve feedback.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const exportFeedback = () => {
-    // In a real app, this would generate and download a CSV/Excel file
-    console.log('Exporting feedback data...', filteredFeedback);
+    // Create CSV content
+    const headers = ['Date', 'Citizen', 'Service', 'Department', 'Rating', 'Sentiment', 'Comments'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredFeedback.map(fb => [
+        fb.feedbackDate || '',
+        `"${fb.citizenName || ''}"`,
+        `"${fb.serviceName || ''}"`,
+        `"${fb.departmentName || ''}"`,
+        fb.rating,
+        fb.sentiment,
+        `"${(fb.remarks || fb.comments || '').replace(/"/g, '""')}"`
+      ].join(','))
+    ].join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `feedback-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const columns = [
     {
-      key: 'citizenName',
-      header: 'Citizen',
-      accessorKey: 'citizenName',
+      key: 'feedbackDate',
+      header: 'Date',
+      accessorKey: 'feedbackDate',
       cell: (row: FeedbackWithDerived) => (
-        <div>
-          <div className="font-medium">{row.citizenName}</div>
-          <div className="text-sm text-gray-500">{row.feedbackDate}</div>
+        <div className="text-sm text-gray-500">
+          {row.feedbackDate ? new Date(row.feedbackDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
         </div>
       )
     },
     {
       key: 'serviceName',
-      header: 'Service',
+      header: 'Service & Department',
       accessorKey: 'serviceName',
       cell: (row: FeedbackWithDerived) => (
         <div>
@@ -292,12 +444,14 @@ export const Feedback: React.FC = () => {
       )
     },
     {
-      key: 'comments',
-      header: 'Comments',
-      accessorKey: 'comments',
+      key: 'remarks',
+      header: 'Feedback',
+      accessorKey: 'remarks',
       cell: (row: FeedbackWithDerived) => (
         <div className="max-w-xs">
-          <p className="text-sm text-gray-600 truncate">{row.comments}</p>
+          <p className="text-sm text-gray-600 truncate">
+            {row.remarks || row.comments}
+          </p>
         </div>
       )
     },
@@ -306,16 +460,31 @@ export const Feedback: React.FC = () => {
       header: 'Actions',
       accessorKey: 'actions',
       cell: (row: FeedbackWithDerived) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleViewFeedback(row)}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleViewFeedback(row)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          {row.sentiment === 'negative' && !row.isResolved && isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700"
+              onClick={() => handleResolveFeedback(row.id)}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Resolve
+            </Button>
+          )}
+        </div>
       )
     }
   ];
+
+  const uniqueDepartments = [...new Set(feedback.map(f => f.departmentName).filter(Boolean))];
 
   return (
     <div className="space-y-6">
@@ -346,15 +515,41 @@ export const Feedback: React.FC = () => {
             <BarChart3 className="h-4 w-4" />
             <span>Analytics</span>
           </Button>
+          {user?.role !== 'ADMIN' && user?.role !== 'SUPER_ADMIN' && (
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Feedback</span>
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Feedback" value={stats.total} icon={MessageSquare} />
-        <StatCard title="Average Rating" value={`${stats.averageRating}/5`} icon={Star} />
-        <StatCard title="Positive" value={stats.positive} icon={ThumbsUp} color="green" />
-        <StatCard title="Negative" value={stats.negative} icon={ThumbsDown} color="red" />
+        <StatCard 
+          title="Total Feedback" 
+          value={stats.totalFeedback || feedback.length} 
+          icon={MessageSquare} 
+        />
+        <StatCard 
+          title="Average Rating" 
+          value={`${stats.averageRating || 0}/5`} 
+          icon={Star} 
+        />
+        <StatCard 
+          title="Response Rate" 
+          value={`${stats.responseRate || 0}%`} 
+          icon={BarChart3} 
+        />
+        <StatCard 
+          title="Positive Feedback" 
+          value={`${stats.positiveFeedback || Math.round((stats.positive / (stats.totalFeedback || 1)) * 100)}%`} 
+          icon={ThumbsUp} 
+          color="green" 
+        />
       </div>
 
       {/* Sentiment Breakdown */}
@@ -446,11 +641,10 @@ export const Feedback: React.FC = () => {
                   onChange={(e) => setDepartmentFilter((e.target as HTMLSelectElement).value)}
                   options={[
                     { value: 'all', label: 'All Departments' },
-                    { value: 'Immigration & Emigration', label: 'Immigration & Emigration' },
-                    { value: 'Registrar General', label: 'Registrar General' },
-                    { value: 'Motor Traffic', label: 'Motor Traffic' },
-                    { value: 'Inland Revenue', label: 'Inland Revenue' },
-                    { value: 'Grama Niladhari', label: 'Grama Niladhari' }
+                    ...uniqueDepartments.map(dept => ({
+                      value: dept!,
+                      label: dept!
+                    }))
                   ]}
                 />
               </div>
@@ -470,7 +664,10 @@ export const Feedback: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => loadFeedback()}
+                onClick={() => {
+                  loadFeedback();
+                  loadFeedbackStats();
+                }}
                 disabled={loading}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
@@ -502,87 +699,158 @@ export const Feedback: React.FC = () => {
       >
         {selectedFeedback && (
           <div className="space-y-6">
-            {/* Header with Rating */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{selectedFeedback.citizenName}</h3>
-                <p className="text-gray-600">{selectedFeedback.serviceName}</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="flex">{getRatingStars(selectedFeedback.rating)}</div>
-                <span className="text-lg font-bold">{selectedFeedback.rating}/5</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Appointment Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Appointment Details</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">{selectedFeedback.appointmentDate}</p>
-                      <p className="text-sm text-gray-500">{selectedFeedback.appointmentTime}</p>
-                    </div>
+            {loading && <p>Loading details...</p>}
+            {error && <div className="p-3 mb-4 rounded bg-red-50 text-red-700 text-sm">{error}</div>}
+            {!loading && !error && (
+              <>
+                {/* Header with Rating */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{citizenDetails?.name || selectedFeedback.citizenName}</h3>
+                    <p className="text-gray-600">{appointmentDetails?.service?.serviceName || selectedFeedback.serviceName}</p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Building2 className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">{selectedFeedback.departmentName}</p>
-                      <p className="text-sm text-gray-500">{selectedFeedback.serviceName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{selectedFeedback.citizenName}</span>
+                    <div className="flex">{getRatingStars(selectedFeedback.rating)}</div>
+                    <span className="text-lg font-bold">{selectedFeedback.rating}/5</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Feedback Analysis */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Feedback Analysis</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    {getSentimentIcon(selectedFeedback.sentiment)}
-                    <div>
-                      <p className="font-medium">Sentiment</p>
-                      <span className={getSentimentBadge(selectedFeedback.sentiment)}>
-                        {selectedFeedback.sentiment.charAt(0).toUpperCase() + selectedFeedback.sentiment.slice(1)}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Citizen Information */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">Citizen Details</h4>
+                    {citizenDetails ? (
+                      <div className="space-y-3 text-sm">
+                        <p><strong>Name:</strong> {citizenDetails.name}</p>
+                        <p><strong>Email:</strong> {citizenDetails.email}</p>
+                        <p><strong>NIC:</strong> {citizenDetails.nic}</p>
+                        <p><strong>Phone:</strong> {citizenDetails.phone}</p>
+                      </div>
+                    ) : <p>No citizen details available.</p>}
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Feedback Date</p>
-                      <p className="text-sm text-gray-500">{selectedFeedback.feedbackDate}</p>
-                    </div>
+
+                  {/* Appointment Information */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">Appointment Details</h4>
+                    {appointmentDetails ? (
+                      <div className="space-y-3 text-sm">
+                        <p><strong>Date:</strong> {new Date(appointmentDetails.date_time).toLocaleDateString()}</p>
+                        <p><strong>Time:</strong> {new Date(appointmentDetails.date_time).toLocaleTimeString()}</p>
+                        <p><strong>Service:</strong> {appointmentDetails.service?.serviceName}</p>
+                        <p><strong>Status:</strong> <span className="capitalize">{appointmentDetails.status}</span></p>
+                        <p><strong>Reference:</strong> {appointmentDetails.reference_no}</p>
+                      </div>
+                    ) : <p>No appointment details available.</p>}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Comments */}
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Comments</h4>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-700">{selectedFeedback.comments}</p>
-              </div>
-            </div>
+                {/* Documents */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Submitted Documents</h4>
+                  {documents.length > 0 ? (
+                    <ul className="space-y-2">
+                      {documents.map(doc => (
+                        <li key={doc.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-5 w-5 text-gray-500" />
+                            <span className="text-sm">{doc.document_name}</span>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${doc.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{doc.status}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="text-sm text-gray-500">No documents submitted for this appointment.</p>}
+                </div>
 
-            {/* Action Items */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Action Items</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Follow up with department for service improvement</li>
-                <li>• Share positive feedback with service team</li>
-                <li>• Track trend analysis for continuous improvement</li>
-              </ul>
-            </div>
+                {/* Comments */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Comments</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{selectedFeedback.remarks || selectedFeedback.comments}</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
+      </Modal>
+
+      {/* Create Feedback Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setNewFeedback({ appointmentId: '', rating: 5, remarks: '' });
+          setError(null);
+        }}
+        title="Submit Feedback"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Appointment ID *
+            </label>
+            <Input
+              placeholder="Enter appointment ID (e.g., APP1723532294023)"
+              value={newFeedback.appointmentId}
+              onChange={(e) => setNewFeedback(prev => ({ ...prev, appointmentId: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rating *
+            </label>
+            <div className="flex items-center space-x-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-6 w-6 cursor-pointer ${
+                    star <= newFeedback.rating 
+                      ? 'text-yellow-400 fill-current' 
+                      : 'text-gray-300 hover:text-yellow-300'
+                  }`}
+                  onClick={() => setNewFeedback(prev => ({ ...prev, rating: star }))}
+                />
+              ))}
+              <span className="text-sm text-gray-600">({newFeedback.rating}/5)</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Comments *
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={4}
+              placeholder="Share your experience with the service..."
+              value={newFeedback.remarks}
+              onChange={(e) => setNewFeedback(prev => ({ ...prev, remarks: e.target.value }))}
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 rounded bg-red-50 text-red-700 text-sm">{error}</div>
+          )}
+
+          <div className="flex justify-end space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setNewFeedback({ appointmentId: '', rating: 5, remarks: '' });
+                setError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFeedback} disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Feedback'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Analytics Modal */}
@@ -593,23 +861,76 @@ export const Feedback: React.FC = () => {
         size="xl"
       >
         <div className="space-y-6">
-          {/* Department Ratings */}
+          {/* Statistics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600">Total Feedback</p>
+                  <p className="text-2xl font-bold text-blue-900">{stats.totalFeedback}</p>
+                </div>
+                <MessageSquare className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-600">Average Rating</p>
+                  <p className="text-2xl font-bold text-yellow-900">{stats.averageRating}/5</p>
+                </div>
+                <Star className="h-8 w-8 text-yellow-600" />
+              </div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600">Response Rate</p>
+                  <p className="text-2xl font-bold text-green-900">{stats.responseRate}%</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-600">Positive %</p>
+                  <p className="text-2xl font-bold text-purple-900">{stats.positiveFeedback}%</p>
+                </div>
+                <ThumbsUp className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Sentiment Distribution */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4">Department Performance</h4>
-            <div className="space-y-3">
-              {/* Placeholder: would display department aggregated ratings when backend analytics available */}
-              <p className="text-sm text-gray-500">Department performance analytics not available yet.</p>
+            <h4 className="font-semibold text-gray-900 mb-4">Sentiment Distribution</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <ThumbsUp className="h-12 w-12 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-900">{stats.positive}</p>
+                <p className="text-sm text-green-600">Positive</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                <AlertTriangle className="h-12 w-12 text-yellow-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-yellow-900">{stats.neutral}</p>
+                <p className="text-sm text-yellow-600">Neutral</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg text-center">
+                <ThumbsDown className="h-12 w-12 text-red-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-red-900">{stats.negative}</p>
+                <p className="text-sm text-red-600">Negative</p>
+              </div>
             </div>
           </div>
 
           {/* Key Insights */}
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-green-900 mb-2">Key Insights</h4>
-            <ul className="text-sm text-green-700 space-y-1">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">Key Insights</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
               <li>• Average rating: {stats.averageRating}/5</li>
-              <li>• Positive share: {stats.total ? Math.round((stats.positive / stats.total) * 100) : 0}%</li>
-              <li>• Neutral share: {stats.total ? Math.round((stats.neutral / stats.total) * 100) : 0}%</li>
-              <li>• Negative share: {stats.total ? Math.round((stats.negative / stats.total) * 100) : 0}%</li>
+              <li>• Response rate: {stats.responseRate}%</li>
+              <li>• Positive feedback: {stats.positiveFeedback}%</li>
+              <li>• Total feedback received: {stats.totalFeedback}</li>
             </ul>
           </div>
         </div>
