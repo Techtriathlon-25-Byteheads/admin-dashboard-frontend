@@ -22,15 +22,15 @@
                             800: '#166534',
                             900: '#14532d'
                         },
-                        accent: {
+                        secondary: {
                             50: '#f0f9f4',
                             100: '#A8D4B999',
                             200: '#A8D4B9',
                             300: '#4C9B6F29',
                             400: '#4C9B6F',
-                            500: '#1A5E3A',
-                            600: '#166534',
-                            700: '#15803d',
+                            500: '#A8D4B9',
+                            600: '#569099',
+                            700: '#3F838E',
                             800: '#14532d',
                             900: '#052e16'
                         },
@@ -54,10 +54,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
+        /* Theme customization: See THEME_GUIDE.md for color customization instructions */
+        
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
+        /* Use theme constants for gradients that need direct hex values */
         .gradient-bg {
             background: linear-gradient(135deg, #4C9B6F 0%, #1A5E3A 100%);
         }
@@ -83,6 +86,7 @@
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
+        /* Status badges using theme colors */
         .status-active {
             background-color: #dcfce7;
             color: #15803d;
@@ -101,6 +105,7 @@
             border: 1px solid #D9D9D9;
         }
 
+        /* Primary button using theme constants */
         .btn-primary {
             background: linear-gradient(135deg, #4C9B6F 0%, #1A5E3A 100%);
             border: none;
@@ -116,6 +121,7 @@
             box-shadow: 0 8px 25px -5px rgba(76, 155, 111, 0.4);
         }
 
+        /* Form inputs using surface colors */
         .search-input {
             background: #F5F6F9;
             border: 1px solid #D9D9D9;
@@ -130,6 +136,7 @@
             background: white;
         }
 
+        /* Citizen cards with theme-based hover states */
         .citizen-card {
             background: #ffffff;
             border-radius: 16px;
@@ -160,6 +167,7 @@
             background: linear-gradient(135deg, #4C9B6F 0%, #1A5E3A 100%);
         }
 
+        /* Stats cards with consistent theming */
         .stats-card {
             background: #ffffff;
             border-radius: 16px;
@@ -168,7 +176,7 @@
         }
 
         .stats-card:hover {
-            border-color: #4C9B6F29;
+            border-color: rgba(76, 155, 111, 0.16);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
@@ -181,6 +189,7 @@
             justify-content: center;
         }
 
+        /* Modal styling */
         .modal-overlay {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(8px);
@@ -193,6 +202,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* Form inputs with theme focus states */
         .form-input {
             border: 1px solid #D9D9D9;
             border-radius: 12px;
@@ -207,6 +217,7 @@
             background: white;
         }
 
+        /* Navigation styling */
         .sidebar-nav {
             background: #ffffff;
             border-right: 1px solid #D9D9D9;
@@ -231,11 +242,13 @@
             font-weight: 600;
         }
 
+        /* Page header with gradient */
         .page-header {
             background: linear-gradient(135deg, #ffffff 0%, #F5F6F9 100%);
             border-bottom: 1px solid #D9D9D9;
         }
 
+        /* Utility classes */
         .loading {
             opacity: 0.6;
             pointer-events: none;
@@ -434,8 +447,8 @@
                             <div class="stats-card bg-white rounded-2xl border border-surface-200 p-6 hover:shadow-lg transition-shadow">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0">
-                                        <div class="w-12 h-12 bg-accent-200 rounded-xl flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-12 h-12 bg-secondary-200 rounded-xl flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                             </svg>
                                         </div>
@@ -532,8 +545,8 @@
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="modal-content w-full max-w-md p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-semibold text-gray-900">Add New Citizen</h3>
-                    <button onclick="closeAddCitizenModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <h3 class="text-xl font-semibold text-slate-900">Add New Citizen</h3>
+                    <button onclick="closeAddCitizenModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -543,67 +556,67 @@
                 <form id="addCitizenForm" onsubmit="handleAddCitizen(event)" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
                             <input 
                                 type="text" 
                                 id="citizenName" 
                                 required 
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 placeholder="Enter full name"
                             >
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Email</label>
                                 <input 
                                     type="email" 
                                     id="citizenEmail" 
                                     required 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                     placeholder="email@example.com"
                                 >
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Phone</label>
                                 <input 
                                     type="tel" 
                                     id="citizenPhone" 
                                     required 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                     placeholder="+1 (555) 000-0000"
                                 >
                             </div>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Address</label>
                             <textarea 
                                 id="citizenAddress" 
                                 required 
                                 rows="3"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                                class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                                 placeholder="Enter full address"
                             ></textarea>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Date of Birth</label>
                                 <input 
                                     type="date" 
                                     id="citizenDob" 
                                     required 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                 >
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">National ID</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">National ID</label>
                                 <input 
                                     type="text" 
                                     id="citizenNationalId" 
                                     required 
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                    class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                                     placeholder="ID Number"
                                 >
                             </div>
@@ -614,13 +627,13 @@
                         <button 
                             type="button" 
                             onclick="closeAddCitizenModal()" 
-                            class="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                            class="flex-1 px-6 py-3 border border-surface-300 rounded-lg text-slate-700 hover:bg-surface-50 font-medium transition-colors"
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit" 
-                            class="flex-1 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                            class="btn-primary flex-1 px-6 py-3 rounded-lg font-medium transition-all transform hover:scale-105"
                         >
                             Add Citizen
                         </button>
@@ -631,9 +644,6 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_BASE_URL = 'http://localhost:8000';
-
         // API utility functions
         class ApiService {
             static async request(endpoint, options = {}) {
