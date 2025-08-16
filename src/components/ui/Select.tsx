@@ -4,6 +4,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
+  defaultValue?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({ 
@@ -12,6 +13,7 @@ export const Select: React.FC<SelectProps> = ({
   options,
   className = '', 
   id,
+  defaultValue,
   ...props 
 }) => {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
@@ -32,6 +34,7 @@ export const Select: React.FC<SelectProps> = ({
           ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}
           ${className}
         `}
+        defaultValue={defaultValue}
         {...props}
       >
         <option value="">Select an option</option>

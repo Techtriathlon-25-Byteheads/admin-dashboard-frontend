@@ -16,7 +16,6 @@ import {
   Plus, 
   Edit3, 
   Trash2, 
-  Eye,
   Calendar
 } from 'lucide-react';
 
@@ -26,6 +25,92 @@ interface OfficerFilters {
   sortBy: 'name' | 'createdAt' | 'email';
   sortOrder: 'asc' | 'desc';
 }
+
+const ServiceAssignment: React.FC<{
+  officerForm: any;
+  setOfficerForm: (form: any) => void;
+  services: Service[];
+  serviceSearch: string;
+  setServiceSearch: (search: string) => void;
+}> = ({ officerForm, setOfficerForm, services, serviceSearch, setServiceSearch }) => {
+  const assignedServiceObjects = services.filter(s => officerForm.serviceIds.includes(s.serviceId!));
+  const availableServices = services
+    .filter(s => !officerForm.serviceIds.includes(s.serviceId!))
+    .filter(s => s.serviceName.toLowerCase().includes(serviceSearch.toLowerCase()));
+
+  const addService = (serviceId: string) => {
+    setOfficerForm({
+      ...officerForm,
+      serviceIds: [...officerForm.serviceIds, serviceId],
+    });
+  };
+
+  const removeService = (serviceId: string) => {
+    setOfficerForm({
+      ...officerForm,
+      serviceIds: officerForm.serviceIds.filter((id: string) => id !== serviceId),
+    });
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Assign Services
+      </label>
+      <div className="grid grid-cols-2 gap-6 h-[300px]">
+        {/* Available Services */}
+        <div className="flex flex-col space-y-3">
+          <h3 className="font-semibold text-base">Available Services</h3>
+          <Input
+            placeholder="Search services..."
+            value={serviceSearch}
+            onChange={e => setServiceSearch(e.target.value)}
+          />
+          <div className="border rounded-md flex-grow overflow-y-auto">
+            {availableServices.length > 0 ? (
+              availableServices.map(service => (
+                <div key={service.serviceId} className="p-3 border-b last:border-b-0 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{service.serviceName}</p>
+                    <p className="text-sm text-gray-500">{service.serviceCategory}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => addService(service.serviceId!)}>
+                    Add
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 p-6">No services available.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Assigned Services */}
+        <div className="flex flex-col space-y-3">
+          <h3 className="font-semibold text-base">Assigned Services ({assignedServiceObjects.length})</h3>
+          <div className="border rounded-md flex-grow overflow-y-auto bg-gray-50">
+            {assignedServiceObjects.length > 0 ? (
+              assignedServiceObjects.map(service => (
+                <div key={service.serviceId} className="p-3 border-b last:border-b-0 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{service.serviceName}</p>
+                    <p className="text-sm text-gray-500">{service.serviceCategory}</p>
+                  </div>
+                  <Button size="sm" variant="destructive" onClick={() => removeService(service.serviceId!)}>
+                    Remove
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 p-6">No services assigned yet.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export const Officers: React.FC = () => {
   const user = useAuthStore((state) => state.user);
@@ -37,17 +122,19 @@ export const Officers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Modal states
-  const [showViewModal, setShowViewModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedOfficer, setSelectedOfficer] = useState<User | null>(null);
+  const [serviceSearch, setServiceSearch] = useState('');
   
   // Form state
   const [officerForm, setOfficerForm] = useState({
     email: '',
     firstName: '',
     lastName: '',
+    password: '',
+    confirmPassword: '',
     isActive: true,
     serviceIds: [] as string[]
   });
@@ -128,7 +215,6 @@ export const Officers: React.FC = () => {
   const filteredOfficers = React.useMemo(() => {
     let filtered = [...officers];
     
-    // Apply search filter
     if (filters.search) {
       const search = filters.search.toLowerCase();
       filtered = filtered.filter(officer => 
@@ -138,14 +224,12 @@ export const Officers: React.FC = () => {
       );
     }
     
-    // Apply status filter
     if (filters.status !== 'all') {
       filtered = filtered.filter(officer => 
         filters.status === 'active' ? officer.isActive : !officer.isActive
       );
     }
     
-    // Apply sorting
     filtered.sort((a, b) => {
       let aValue: string | number | Date = '';
       let bValue: string | number | Date = '';
@@ -182,9 +266,12 @@ export const Officers: React.FC = () => {
       email: '',
       firstName: '',
       lastName: '',
+      password: '',
+      confirmPassword: '',
       isActive: true,
       serviceIds: []
     });
+    setServiceSearch('');
   };
 
   // Handle create officer
@@ -193,21 +280,20 @@ export const Officers: React.FC = () => {
     setShowCreateModal(true);
   };
 
-  // Handle view officer
-  const handleView = (officer: User) => {
-    setSelectedOfficer(officer);
-    setShowViewModal(true);
-  };
-
   // Handle edit officer
   const handleEdit = (officer: User) => {
     setSelectedOfficer(officer);
+    const assignedServiceIds = officer.assignedServices?.map(
+      (assignment: any) => assignment.service.serviceId
+    ) || [];
     setOfficerForm({
       email: officer.email || '',
       firstName: officer.firstName || '',
       lastName: officer.lastName || '',
+      password: '',
+      confirmPassword: '',
       isActive: officer.isActive,
-      serviceIds: officer.assignedServices || []
+      serviceIds: assignedServiceIds
     });
     setShowEditModal(true);
   };
@@ -224,13 +310,22 @@ export const Officers: React.FC = () => {
       setError('Email and first name are required');
       return;
     }
+
+    if (!isEdit && officerForm.password !== officerForm.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (!isEdit && !officerForm.password) {
+      setError('Password is required');
+      return;
+    }
     
     try {
       setLoading(true);
       
       let response;
       if (isEdit && selectedOfficer) {
-        // Update existing officer
         response = await api.updateAdminUser(selectedOfficer.userId!, {
           email: officerForm.email,
           firstName: officerForm.firstName,
@@ -239,10 +334,9 @@ export const Officers: React.FC = () => {
           serviceIds: officerForm.serviceIds
         });
       } else {
-        // Create new officer
         response = await api.createAdminUser({
           email: officerForm.email,
-          password: 'password123', // Default password - should be changed in production
+          password: officerForm.password,
           firstName: officerForm.firstName,
           lastName: officerForm.lastName,
           serviceIds: officerForm.serviceIds
@@ -257,7 +351,7 @@ export const Officers: React.FC = () => {
       setShowEditModal(false);
       setSelectedOfficer(null);
       resetForm();
-      await loadOfficers(); // Reload data
+      await loadOfficers();
       
     } catch (err) {
       console.error('Failed to save officer:', err);
@@ -273,17 +367,13 @@ export const Officers: React.FC = () => {
     
     try {
       setLoading(true);
-      
       const response = await api.deleteAdminUser(selectedOfficer.userId!);
-      
       if (response.error) {
         throw new Error(response.error);
       }
-      
       setShowDeleteModal(false);
       setSelectedOfficer(null);
-      await loadOfficers(); // Reload data
-      
+      await loadOfficers();
     } catch (err) {
       console.error('Failed to delete officer:', err);
       setError((err as Error).message || 'Failed to delete officer');
@@ -295,10 +385,9 @@ export const Officers: React.FC = () => {
   // Table columns
   const columns = [
     {
-      key: 'firstName',
+      key: 'name',
       header: 'Name',
-      accessor: 'firstName' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <div>
           <div className="font-medium text-gray-900">
             {`${officer.firstName || ''} ${officer.lastName || ''}`.trim() || 'N/A'}
@@ -310,16 +399,14 @@ export const Officers: React.FC = () => {
     {
       key: 'email',
       header: 'Email',
-      accessor: 'email' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <div className="text-sm text-gray-900">{officer.email || 'No email'}</div>
       ),
     },
     {
       key: 'assignedServices',
       header: 'Assigned Services',
-      accessor: 'assignedServices' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <div className="text-sm text-gray-900">
           {officer.assignedServices?.length ? 
             `${officer.assignedServices.length} service(s)` : 
@@ -329,10 +416,9 @@ export const Officers: React.FC = () => {
       ),
     },
     {
-      key: 'isActive',
+      key: 'status',
       header: 'Status',
-      accessor: 'isActive' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
           officer.isActive 
             ? 'bg-green-100 text-green-800' 
@@ -345,8 +431,7 @@ export const Officers: React.FC = () => {
     {
       key: 'createdAt',
       header: 'Created',
-      accessor: 'createdAt' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <div className="text-sm text-gray-900">
           {officer.createdAt ? new Date(officer.createdAt).toLocaleDateString() : 'N/A'}
         </div>
@@ -355,17 +440,8 @@ export const Officers: React.FC = () => {
     {
       key: 'actions',
       header: 'Actions',
-      accessor: 'actions' as keyof User,
-      cell: (officer: User) => (
+      render: (officer: User) => (
         <div className="flex space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleView(officer)}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            <Eye size={16} />
-          </Button>
           {isSuperAdmin && (
             <>
               <Button
@@ -460,52 +536,7 @@ export const Officers: React.FC = () => {
         />
       </div>
 
-      {/* Filters */}
-      <Card className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Input
-              type="text"
-              placeholder="Search officers..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <Select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value as 'all' | 'active' | 'inactive' })}
-              options={[
-                { value: 'all', label: 'All Officers' },
-                { value: 'active', label: 'Active Only' },
-                { value: 'inactive', label: 'Inactive Only' },
-              ]}
-            />
-          </div>
-          <div>
-            <Select
-              value={filters.sortBy}
-              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as 'name' | 'email' | 'createdAt' })}
-              options={[
-                { value: 'name', label: 'Sort by Name' },
-                { value: 'email', label: 'Sort by Email' },
-                { value: 'createdAt', label: 'Sort by Created Date' },
-              ]}
-            />
-          </div>
-          <div>
-            <Select
-              value={filters.sortOrder}
-              onChange={(e) => setFilters({ ...filters, sortOrder: e.target.value as 'asc' | 'desc' })}
-              options={[
-                { value: 'asc', label: 'Ascending' },
-                { value: 'desc', label: 'Descending' },
-              ]}
-            />
-          </div>
-        </div>
-      </Card>
+
 
       {/* Officers Table */}
       <Card>
@@ -517,87 +548,6 @@ export const Officers: React.FC = () => {
         />
       </Card>
 
-      {/* View Officer Modal */}
-      <Modal
-        isOpen={showViewModal}
-        onClose={() => setShowViewModal(false)}
-        title="Officer Details"
-        size="lg"
-      >
-        {selectedOfficer && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name
-                </label>
-                <p className="text-sm text-gray-900">{selectedOfficer.firstName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name
-                </label>
-                <p className="text-sm text-gray-900">{selectedOfficer.lastName || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <p className="text-sm text-gray-900">{selectedOfficer.email || 'N/A'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
-                </label>
-                <p className="text-sm text-gray-900">{selectedOfficer.role || 'ADMIN'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  selectedOfficer.isActive 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {selectedOfficer.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assigned Services
-                </label>
-                <p className="text-sm text-gray-900">
-                  {selectedOfficer.assignedServices?.length ? 
-                    `${selectedOfficer.assignedServices.length} service(s) assigned` : 
-                    'No services assigned'
-                  }
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Created Date
-                </label>
-                <p className="text-sm text-gray-900">
-                  {selectedOfficer.createdAt ? new Date(selectedOfficer.createdAt).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Updated
-                </label>
-                <p className="text-sm text-gray-900">
-                  {selectedOfficer.updatedAt ? new Date(selectedOfficer.updatedAt).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
       {/* Create Officer Modal */}
       <Modal
         isOpen={showCreateModal}
@@ -606,14 +556,12 @@ export const Officers: React.FC = () => {
           resetForm();
         }}
         title="Create New Officer"
-        size="lg"
+        size="2xl"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                First Name *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
               <Input
                 type="text"
                 value={officerForm.firstName}
@@ -623,9 +571,7 @@ export const Officers: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
               <Input
                 type="text"
                 value={officerForm.lastName}
@@ -636,9 +582,7 @@ export const Officers: React.FC = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
             <Input
               type="email"
               value={officerForm.email}
@@ -647,38 +591,37 @@ export const Officers: React.FC = () => {
               required
             />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign Services
-            </label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {services.map((service) => (
-                <label key={service.serviceId || service.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={officerForm.serviceIds.includes(service.serviceId || service.id || '')}
-                    onChange={(e) => {
-                      const serviceId = service.serviceId || service.id || '';
-                      if (e.target.checked) {
-                        setOfficerForm({
-                          ...officerForm,
-                          serviceIds: [...officerForm.serviceIds, serviceId]
-                        });
-                      } else {
-                        setOfficerForm({
-                          ...officerForm,
-                          serviceIds: officerForm.serviceIds.filter(id => id !== serviceId)
-                        });
-                      }
-                    }}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm text-gray-700">{service.serviceName}</span>
-                </label>
-              ))}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+              <Input
+                type="password"
+                value={officerForm.password}
+                onChange={(e) => setOfficerForm({ ...officerForm, password: e.target.value })}
+                placeholder="Enter password"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+              <Input
+                type="password"
+                value={officerForm.confirmPassword}
+                onChange={(e) => setOfficerForm({ ...officerForm, confirmPassword: e.target.value })}
+                placeholder="Confirm password"
+                required
+              />
             </div>
           </div>
+          
+          <ServiceAssignment 
+            officerForm={officerForm}
+            setOfficerForm={setOfficerForm}
+            services={services}
+            serviceSearch={serviceSearch}
+            setServiceSearch={setServiceSearch}
+          />
           
           <div className="flex justify-end space-x-3 pt-4">
             <Button
@@ -710,14 +653,12 @@ export const Officers: React.FC = () => {
           resetForm();
         }}
         title="Edit Officer"
-        size="lg"
+        size="2xl"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                First Name *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
               <Input
                 type="text"
                 value={officerForm.firstName}
@@ -727,9 +668,7 @@ export const Officers: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
               <Input
                 type="text"
                 value={officerForm.lastName}
@@ -740,9 +679,7 @@ export const Officers: React.FC = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
             <Input
               type="email"
               value={officerForm.email}
@@ -753,9 +690,7 @@ export const Officers: React.FC = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
             <Select
               value={officerForm.isActive ? 'active' : 'inactive'}
               onChange={(e) => setOfficerForm({ ...officerForm, isActive: e.target.value === 'active' })}
@@ -766,37 +701,13 @@ export const Officers: React.FC = () => {
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assign Services
-            </label>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {services.map((service) => (
-                <label key={service.serviceId || service.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={officerForm.serviceIds.includes(service.serviceId || service.id || '')}
-                    onChange={(e) => {
-                      const serviceId = service.serviceId || service.id || '';
-                      if (e.target.checked) {
-                        setOfficerForm({
-                          ...officerForm,
-                          serviceIds: [...officerForm.serviceIds, serviceId]
-                        });
-                      } else {
-                        setOfficerForm({
-                          ...officerForm,
-                          serviceIds: officerForm.serviceIds.filter(id => id !== serviceId)
-                        });
-                      }
-                    }}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span className="text-sm text-gray-700">{service.serviceName}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <ServiceAssignment 
+            officerForm={officerForm}
+            setOfficerForm={setOfficerForm}
+            services={services}
+            serviceSearch={serviceSearch}
+            setServiceSearch={setServiceSearch}
+          />
           
           <div className="flex justify-end space-x-3 pt-4">
             <Button

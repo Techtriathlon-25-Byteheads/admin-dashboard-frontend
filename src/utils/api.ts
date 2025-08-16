@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://tt25.tharusha.dev/api";
+const API_BASE_URL = "http://localhost:3000/api";
 
 export interface ApiResponse<T> {
   data?: T;
@@ -84,6 +84,10 @@ async function apiRequest<T>(
       throw new ApiError(errorText || `HTTP error! status: ${response.status}`, response.status);
     }
 
+    if (response.status === 204) {
+      return { data: {} as T, status: response.status };
+    }
+
     const data = await response.json();
     return { data, status: response.status };
   } catch (error) {
@@ -107,19 +111,42 @@ export const api = {
     }),
   
   // Departments
-  getDepartments: () => apiRequest('/departments'),
-  createDepartment: (data: { name: string; description: string }) =>
+  getDepartments: (sortBy?: string, order?: 'asc' | 'desc') => {
+    const params = new URLSearchParams();
+    if (sortBy) params.set('sortBy', sortBy);
+    if (order) params.set('order', order);
+    return apiRequest(`/departments?${params.toString()}`);
+  },
+  getDepartmentById: (id: string) => apiRequest(`/departments/${id}`),
+  createDepartment: (data: {
+    departmentName: string;
+    description: string;
+    headOfficeAddress: { street: string; city: string };
+    contactInfo: { phone: string };
+    operatingHours: { [key: string]: string };
+  }) =>
     apiRequest('/departments', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  updateDepartment: (id: string, data: { name: string; description: string }) =>
+  updateDepartment: (id: string, data: {
+    departmentName?: string;
+    description?: string;
+  }) =>
     apiRequest(`/departments/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   deleteDepartment: (id: string) =>
     apiRequest(`/departments/${id}`, {
+      method: 'DELETE',
+    }),
+  associateServiceWithDepartment: (departmentId: string, serviceId: string) =>
+    apiRequest(`/departments/${departmentId}/services/${serviceId}`, {
+      method: 'POST',
+    }),
+  deleteServiceFromDepartment: (departmentId: string, serviceId: string) =>
+    apiRequest(`/departments/${departmentId}/services/${serviceId}`, {
       method: 'DELETE',
     }),
   
@@ -131,11 +158,12 @@ export const api = {
     serviceCategory: string;
     processingTimeDays?: number;
     feeAmount: number;
-    requiredDocuments: Record<string, boolean>;
+    requiredDocuments: { usual: Record<string, boolean>; other: string };
     eligibilityCriteria: string;
     onlineAvailable: boolean;
     appointmentRequired: boolean;
     maxCapacityPerSlot: number;
+    operationalHours: { [key: string]: string[] };
   }) =>
     apiRequest('/services', {
       method: 'POST',
@@ -147,12 +175,13 @@ export const api = {
     serviceCategory?: string;
     processingTimeDays?: number;
     feeAmount?: number;
-    requiredDocuments?: Record<string, boolean>;
+    requiredDocuments?: { usual: Record<string, boolean>; other: string };
     eligibilityCriteria?: string;
     onlineAvailable?: boolean;
     appointmentRequired?: boolean;
     maxCapacityPerSlot?: number;
     isActive?: boolean;
+    operationalHours?: { [key: string]: string[] };
   }) =>
     apiRequest(`/services/${id}`, {
       method: 'PUT',
