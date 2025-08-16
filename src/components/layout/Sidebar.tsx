@@ -6,7 +6,6 @@ import {
   Users, 
   Calendar, 
   MessageSquare, 
-  Bot, 
   Bell,
   FileText,
   UserCheck
@@ -28,7 +27,6 @@ const sidebarItems: SidebarItem[] = [
   { icon: Users, label: 'Citizens', path: '/citizens', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { icon: Calendar, label: 'Appointments', path: '/appointments', roles: ['ADMIN', 'SUPER_ADMIN'] },
   { icon: MessageSquare, label: 'Feedback', path: '/feedback', roles: ['ADMIN', 'SUPER_ADMIN'] },
-  { icon: Bot, label: 'AI Chatbot', path: '/chatbot', roles: ['SUPER_ADMIN'] },
   { icon: Bell, label: 'Notifications', path: '/notifications', roles: ['SUPER_ADMIN'] },
 //   { icon: Shield, label: 'Security', path: '/security', roles: ['SUPER_ADMIN'] },
 ];
