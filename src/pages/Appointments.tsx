@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -27,7 +27,8 @@ import { Modal } from '../components/ui/Modal';
 import { Table } from '../components/ui/Table';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthStore } from '../store/authStore';
-import { Appointment } from '../types';
+import { Appointment, Analytics } from '../types';
+import { api } from '../utils/api';
 
 interface AppointmentWithDetails extends Appointment {
   citizenName: string;
@@ -40,125 +41,66 @@ interface AppointmentWithDetails extends Appointment {
   queuePosition?: number;
 }
 
-// Mock data for demonstration
-const mockAppointments: AppointmentWithDetails[] = [
-  {
-    id: 'APT-001',
-    citizen_id: 'C001',
-    service_id: 'S001',
-    officer_id: 'O001',
-    status: 'confirmed',
-    date_time: '2024-01-15T09:00:00',
-    documents_json: '["nic", "passport"]',
-    qr_code: 'QR-APT-001',
-    reference_no: 'REF-001',
-    citizenName: 'Kasun Perera',
-    serviceName: 'Passport Application',
-    departmentName: 'Immigration & Emigration',
-    officerName: 'Nimal Silva',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '09:00 AM',
-    estimatedWaitTime: 15,
-    queuePosition: 3
-  },
-  {
-    id: 'APT-002',
-    citizen_id: 'C002',
-    service_id: 'S002',
-    officer_id: 'O002',
-    status: 'pending',
-    date_time: '2024-01-15T10:30:00',
-    documents_json: '["nic", "birth_cert"]',
-    qr_code: 'QR-APT-002',
-    reference_no: 'REF-002',
-    citizenName: 'Amara Fernando',
-    serviceName: 'Birth Certificate',
-    departmentName: 'Registrar General',
-    officerName: 'Sunil Rathnayake',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '10:30 AM',
-    estimatedWaitTime: 25,
-    queuePosition: 7
-  },
-  {
-    id: 'APT-003',
-    citizen_id: 'C003',
-    service_id: 'S003',
-    officer_id: 'O003',
-    status: 'completed',
-    date_time: '2024-01-14T14:00:00',
-    documents_json: '["nic", "license"]',
-    qr_code: 'QR-APT-003',
-    reference_no: 'REF-003',
-    citizenName: 'Priya Jayawardena',
-    serviceName: 'License Renewal',
-    departmentName: 'Motor Traffic',
-    officerName: 'Rohana Wijesinghe',
-    appointmentDate: '2024-01-14',
-    appointmentTime: '02:00 PM',
-    estimatedWaitTime: 0,
-    queuePosition: 0
-  },
-  {
-    id: 'APT-004',
-    citizen_id: 'C004',
-    service_id: 'S004',
-    officer_id: 'O004',
-    status: 'cancelled',
-    date_time: '2024-01-16T11:00:00',
-    documents_json: '["nic", "tax_docs"]',
-    qr_code: 'QR-APT-004',
-    reference_no: 'REF-004',
-    citizenName: 'Ruwan Dissanayake',
-    serviceName: 'Tax Registration',
-    departmentName: 'Inland Revenue',
-    officerName: 'Kamani Gunathilake',
-    appointmentDate: '2024-01-16',
-    appointmentTime: '11:00 AM',
-    estimatedWaitTime: 0,
-    queuePosition: 0
-  },
-  {
-    id: 'APT-005',
-    citizen_id: 'C005',
-    service_id: 'S005',
-    officer_id: 'O005',
-    status: 'no-show',
-    date_time: '2024-01-14T16:30:00',
-    documents_json: '["nic", "income_cert"]',
-    qr_code: 'QR-APT-005',
-    reference_no: 'REF-005',
-    citizenName: 'Lakshmi Rajapakse',
-    serviceName: 'Income Certificate',
-    departmentName: 'Grama Niladhari',
-    officerName: 'Saman Kumara',
-    appointmentDate: '2024-01-14',
-    appointmentTime: '04:30 PM',
-    estimatedWaitTime: 0,
-    queuePosition: 0
-  }
-];
+// Helper to map backend appointment object to UI shape
+interface BackendAppointmentShape {
+  id?: string; appointmentId?: string; userId?: string; citizen_id?: string; serviceId?: string; service_id?: string; officerId?: string; officer_id?: string;
+  status: Appointment['status']; appointmentDate?: string; date_time?: string; dateTime?: string; appointmentTime?: string; time?: string;
+  requiredDocuments?: string[]; documents?: string[]; qrCode?: string; qr_code?: string; reference?: string; reference_no?: string;
+  citizenName?: string; citizen?: { fullName?: string }; user?: { fullName?: string };
+  serviceName?: string; service?: { serviceName?: string; department?: { departmentName?: string } };
+  departmentName?: string; officerName?: string; officer?: { firstName?: string };
+}
 
-const appointmentStats = {
-  totalAppointments: 1245,
-  todayAppointments: 87,
-  confirmedAppointments: 952,
-  pendingAppointments: 123,
-  completedAppointments: 1089,
-  cancelledAppointments: 67,
-  noShowAppointments: 89,
-  averageWaitTime: 22,
-  averageServiceTime: 18,
-  peakHours: '10:00 AM - 12:00 PM'
+const mapAppointment = (apt: BackendAppointmentShape): AppointmentWithDetails => {
+  const rawDate: string = (apt.appointmentDate || apt.date_time || apt.dateTime || '') as string;
+  const date = rawDate ? new Date(rawDate) : new Date();
+  const time: string | undefined = (apt.appointmentTime || apt.time || apt.date_time) as string | undefined;
+  return {
+  id: (apt.appointmentId || apt.id || '') as string,
+  citizen_id: (apt.userId || apt.citizen_id || '') as string,
+  service_id: (apt.serviceId || apt.service_id || '') as string,
+    officer_id: apt.officerId || apt.officer_id || '',
+  status: (apt.status || 'scheduled') as Appointment['status'],
+  date_time: (apt.appointmentDate || apt.date_time || rawDate) as string,
+    documents_json: JSON.stringify(apt.requiredDocuments || apt.documents || []),
+    qr_code: apt.qrCode || apt.qr_code || '',
+  reference_no: (apt.reference || apt.reference_no || apt.appointmentId || apt.id || 'REF') as string,
+    citizenName: apt.citizenName || apt.citizen?.fullName || apt.user?.fullName || 'Citizen',
+    serviceName: apt.serviceName || apt.service?.serviceName || 'Service',
+    departmentName: apt.departmentName || apt.service?.department?.departmentName || 'Department',
+    officerName: apt.officerName || apt.officer?.firstName || 'Officer',
+    appointmentDate: date ? date.toISOString().split('T')[0] : '',
+  appointmentTime: time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+  };
+};
+
+interface DerivedAppointmentStats {
+  totalAppointments: number;
+  todayAppointments: number;
+  confirmedAppointments: number;
+  scheduledAppointments: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  peakHours: string;
+}
+
+const initialStats: DerivedAppointmentStats = {
+  totalAppointments: 0,
+  todayAppointments: 0,
+  confirmedAppointments: 0,
+  scheduledAppointments: 0,
+  completedAppointments: 0,
+  cancelledAppointments: 0,
+  peakHours: '-'
 };
 
 export const Appointments: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   
-  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>(mockAppointments);
-  const [filteredAppointments, setFilteredAppointments] = useState<AppointmentWithDetails[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<AppointmentWithDetails[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
@@ -168,6 +110,40 @@ export const Appointments: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DerivedAppointmentStats>(initialStats);
+
+  const loadAnalytics = useCallback(async () => {
+    const { data } = await api.getAnalytics();
+    if (data) {
+      interface QuickStats { completed?: number; pending?: number; cancelled?: number; noShows?: number }
+      interface PeakHour { time: string; count: number }
+      const a = data as unknown as Analytics & { quickStatsToday?: QuickStats; peakHoursToday?: PeakHour[] };
+      setStats({
+        totalAppointments: a?.appointmentStats?.totalThisMonth || 0,
+        todayAppointments: a?.quickStatsToday?.completed + a?.quickStatsToday?.pending + a?.quickStatsToday?.cancelled || 0,
+        confirmedAppointments: a?.quickStatsToday?.pending || 0, // backend distinguishes scheduled/confirmed; using pending as placeholder
+        scheduledAppointments: a?.quickStatsToday?.pending || 0,
+        completedAppointments: a?.quickStatsToday?.completed || 0,
+        cancelledAppointments: a?.quickStatsToday?.cancelled || 0,
+        peakHours: a?.peakHoursToday?.length ? `${a.peakHoursToday[0].time}` : '-'
+      });
+    }
+  }, []);
+
+  const loadAppointments = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data, error } = await api.getAdminAppointments();
+    if (error) {
+      setError(error);
+    } else if (Array.isArray(data)) {
+      setAppointments(data.map(mapAppointment));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadAppointments(); loadAnalytics(); }, [loadAppointments, loadAnalytics]);
 
   // Filter appointments based on search and filters
   useEffect(() => {
@@ -264,15 +240,23 @@ export const Appointments: React.FC = () => {
     }
   };
 
-  const handleStatusUpdate = (appointmentId, newStatus) => {
-    setAppointments(prev =>
-      prev.map(appointment =>
-        appointment.id === appointmentId
-          ? { ...appointment, status: newStatus }
-          : appointment
-      )
-    );
-    setIsEditModalOpen(false);
+  const handleStatusUpdate = async (appointmentId: string, newStatus: Appointment['status']) => {
+    // optimistic update
+    const prev = appointments;
+    setAppointments(prev.map(a => a.id === appointmentId ? { ...a, status: newStatus } : a));
+    try {
+  // Only allowed status set accepted by backend
+      const allowed: Array<Exclude<Appointment['status'], 'pending' | 'no-show'>> = ['scheduled','confirmed','completed','cancelled'];
+      const isAllowed = (s: Appointment['status']): s is 'scheduled' | 'confirmed' | 'completed' | 'cancelled' =>
+        (allowed as string[]).includes(s);
+      const payloadStatus: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' = isAllowed(newStatus) ? newStatus : 'scheduled';
+  await api.updateAdminAppointment(appointmentId, { status: payloadStatus, notes });
+    } catch {
+      // revert on failure
+      setAppointments(prev);
+    } finally {
+      setIsEditModalOpen(false);
+    }
   };
 
   const handleViewAppointment = (appointment: AppointmentWithDetails) => {
@@ -421,59 +405,37 @@ export const Appointments: React.FC = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard
-          title="Total Appointments"
-          value={appointmentStats.totalAppointments.toLocaleString()}
-          icon={Calendar}
-          trend="+12%"
-          trendDirection="up"
-        />
+        <StatCard title="Total Appointments" value={stats.totalAppointments.toLocaleString()} icon={Calendar} />
         <StatCard
           title="Today's Appointments"
-          value={appointmentStats.todayAppointments.toString()}
+          value={stats.todayAppointments.toString()}
           icon={Clock}
-          trend="+5%"
-          trendDirection="up"
         />
         <StatCard
-          title="Pending Confirmation"
-          value={appointmentStats.pendingAppointments.toString()}
+          title="Scheduled"
+          value={stats.scheduledAppointments.toString()}
           icon={AlertTriangle}
-          trend="-8%"
-          trendDirection="down"
         />
       </div>
 
       {/* Additional Stats for Admin */}
       {isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Completed"
-            value={appointmentStats.completedAppointments.toString()}
-            icon={CheckCircle}
-            trend="+15%"
-            trendDirection="up"
-          />
+          <StatCard title="Completed" value={stats.completedAppointments.toString()} icon={CheckCircle} />
           <StatCard
             title="Cancelled"
-            value={appointmentStats.cancelledAppointments.toString()}
+            value={stats.cancelledAppointments.toString()}
             icon={XCircle}
-            trend="+2%"
-            trendDirection="up"
           />
           <StatCard
-            title="No-Shows"
-            value={appointmentStats.noShowAppointments.toString()}
+            title="Confirmed" 
+            value={stats.confirmedAppointments.toString()}
             icon={AlertTriangle}
-            trend="-5%"
-            trendDirection="down"
           />
           <StatCard
             title="Peak Hours"
-            value={appointmentStats.peakHours}
+            value={stats.peakHours}
             icon={Calendar}
-            trend="Stable"
-            trendDirection="neutral"
           />
         </div>
       )}
@@ -506,10 +468,11 @@ export const Appointments: React.FC = () => {
               </label>
               <Select
                 value={statusFilter}
-                onChange={setStatusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { value: 'all', label: 'All Statuses' },
                   { value: 'pending', label: 'Pending' },
+                  { value: 'scheduled', label: 'Scheduled' },
                   { value: 'confirmed', label: 'Confirmed' },
                   { value: 'completed', label: 'Completed' },
                   { value: 'cancelled', label: 'Cancelled' },
@@ -524,7 +487,7 @@ export const Appointments: React.FC = () => {
               </label>
               <Select
                 value={dateFilter}
-                onChange={setDateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
                 options={[
                   { value: 'all', label: 'All Dates' },
                   { value: 'today', label: 'Today' },
@@ -542,7 +505,7 @@ export const Appointments: React.FC = () => {
                 </label>
                 <Select
                   value={departmentFilter}
-                  onChange={setDepartmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
                   options={[
                     { value: 'all', label: 'All Departments' },
                     { value: 'Immigration & Emigration', label: 'Immigration & Emigration' },
@@ -563,25 +526,26 @@ export const Appointments: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>
-              Appointments ({filteredAppointments.length})
+              {loading ? 'Loading appointments...' : `Appointments (${filteredAppointments.length})`}
             </CardTitle>
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.location.reload()}
+                onClick={loadAppointments}
+                disabled={loading}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Refresh
+                {loading ? 'Refreshing' : 'Refresh'}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table
-            data={filteredAppointments}
-            columns={columns}
-          />
+          {error && (
+            <div className="p-4 mb-4 rounded bg-red-50 text-red-700 text-sm">{error}</div>
+          )}
+          <Table data={filteredAppointments} columns={columns} />
         </CardContent>
       </Card>
 
@@ -718,7 +682,7 @@ export const Appointments: React.FC = () => {
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  variant={selectedAppointment.status === 'confirmed' ? 'default' : 'outline'}
+                  variant={selectedAppointment.status === 'confirmed' ? 'primary' : 'outline'}
                   onClick={() => handleStatusUpdate(selectedAppointment.id, 'confirmed')}
                   className="flex items-center justify-center space-x-2"
                 >
@@ -726,7 +690,7 @@ export const Appointments: React.FC = () => {
                   <span>Confirm</span>
                 </Button>
                 <Button
-                  variant={selectedAppointment.status === 'completed' ? 'default' : 'outline'}
+                  variant={selectedAppointment.status === 'completed' ? 'primary' : 'outline'}
                   onClick={() => handleStatusUpdate(selectedAppointment.id, 'completed')}
                   className="flex items-center justify-center space-x-2"
                 >
@@ -734,21 +698,14 @@ export const Appointments: React.FC = () => {
                   <span>Complete</span>
                 </Button>
                 <Button
-                  variant={selectedAppointment.status === 'cancelled' ? 'default' : 'outline'}
+                  variant={selectedAppointment.status === 'cancelled' ? 'primary' : 'outline'}
                   onClick={() => handleStatusUpdate(selectedAppointment.id, 'cancelled')}
                   className="flex items-center justify-center space-x-2"
                 >
                   <XCircle className="h-4 w-4" />
                   <span>Cancel</span>
                 </Button>
-                <Button
-                  variant={selectedAppointment.status === 'no-show' ? 'default' : 'outline'}
-                  onClick={() => handleStatusUpdate(selectedAppointment.id, 'no-show')}
-                  className="flex items-center justify-center space-x-2"
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>No-Show</span>
-                </Button>
+                {/* No-Show not directly settable via backend update per current API; intentionally omitted */}
               </div>
             </div>
 

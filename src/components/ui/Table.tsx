@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface Column<T> {
-  key: keyof T;
+  key: keyof T | string; // allow virtual/action columns
   header: string;
   render?: (item: T) => React.ReactNode;
 }

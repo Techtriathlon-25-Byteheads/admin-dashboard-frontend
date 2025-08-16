@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
@@ -20,6 +20,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Appointment } from '../types';
+import { api } from '../utils/api';
 
 interface AppointmentWithDocuments extends Appointment {
   citizenName: string;
@@ -33,230 +34,69 @@ interface AppointmentWithDocuments extends Appointment {
   citizenNIC: string;
 }
 
-// Enhanced mock appointments data for testing different scenarios
-const mockAppointments = [
-  {
-    id: 'APT-001',
-    citizen_id: 'C001',
-    service_id: 'S001',
-    officer_id: 'O001',
-    status: 'confirmed',
-    date_time: '2024-01-15T09:00:00',
-    documents_json: '["nic", "birth_cert", "utility_bill", "photos"]',
-    qr_code: 'QR-APT-001',
-    reference_no: 'REF-001',
-    appointment_remarks: 'Initial passport application. Citizen is applying for first-time passport.',
-    citizenName: 'Kasun Perera',
-    serviceName: 'Passport Application',
-    departmentName: 'Immigration & Emigration',
-    officerName: 'Nimal Silva',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '09:00 AM',
-    citizenPhone: '+94 77 123 4567',
-    citizenEmail: 'kasun.perera@email.com',
-    citizenNIC: '199012345678',
-    documents: [
-      {
-        id: 'DOC-001',
-        appointment_id: 'APT-001',
-        document_name: 'National Identity Card',
-        document_type: 'NIC',
-        file_url: '/documents/nic-kasun-001.jpg',
-        file_type: 'image',
-        status: 'approved',
-        remarks: 'Clear and valid NIC copy provided. All details verified.',
-        reviewed_by: 'Officer Silva',
-        reviewed_at: '2024-01-14T15:30:00',
-        uploaded_at: '2024-01-14T10:00:00'
-      },
-      {
-        id: 'DOC-002',
-        appointment_id: 'APT-001',
-        document_name: 'Birth Certificate',
-        document_type: 'Birth Certificate',
-        file_url: '/documents/birth-cert-kasun-001.pdf',
-        file_type: 'pdf',
-        status: 'pending',
-        remarks: '',
-        uploaded_at: '2024-01-14T10:15:00'
-      },
-      {
-        id: 'DOC-003',
-        appointment_id: 'APT-001',
-        document_name: 'Utility Bill',
-        document_type: 'Proof of Address',
-        file_url: '/documents/utility-bill-kasun-001.pdf',
-        file_type: 'pdf',
-        status: 'rejected',
-        remarks: 'Utility bill is older than 3 months (dated 2023-08-15). Please provide a recent bill within the last 90 days.',
-        reviewed_by: 'Officer Silva',
-        reviewed_at: '2024-01-14T16:00:00',
-        uploaded_at: '2024-01-14T10:30:00'
-      },
-      {
-        id: 'DOC-004',
-        appointment_id: 'APT-001',
-        document_name: 'Passport Photos',
-        document_type: 'Passport Size Photographs',
-        file_url: '/documents/photos-kasun-001.jpg',
-        file_type: 'image',
-        status: 'pending',
-        remarks: '',
-        uploaded_at: '2024-01-14T10:45:00'
-      }
-    ]
-  },
-  {
-    id: 'APT-002',
-    citizen_id: 'C002',
-    service_id: 'S002',
-    officer_id: 'O002',
-    status: 'pending',
-    date_time: '2024-01-16T10:30:00',
-    documents_json: '["medical_cert", "current_license", "nic"]',
-    qr_code: 'QR-APT-002',
-    reference_no: 'REF-002',
-    appointment_remarks: 'Driving license renewal. Medical examination completed.',
-    citizenName: 'Priya Fernando',
-    serviceName: 'Driving License Renewal',
-    departmentName: 'Motor Traffic Department',
-    officerName: 'Sumana Wickramasinghe',
-    appointmentDate: '2024-01-16',
-    appointmentTime: '10:30 AM',
-    citizenPhone: '+94 71 987 6543',
-    citizenEmail: 'priya.fernando@email.com',
-    citizenNIC: '198506789012',
-    documents: [
-      {
-        id: 'DOC-005',
-        appointment_id: 'APT-002',
-        document_name: 'Medical Certificate',
-        document_type: 'Medical Fitness Certificate',
-        file_url: '/documents/medical-priya-002.pdf',
-        file_type: 'pdf',
-        status: 'approved',
-        remarks: 'Valid medical certificate from registered physician Dr. Rajapakse. Valid for 6 months.',
-        reviewed_by: 'Medical Officer',
-        reviewed_at: '2024-01-15T11:20:00',
-        uploaded_at: '2024-01-15T08:45:00'
-      },
-      {
-        id: 'DOC-006',
-        appointment_id: 'APT-002',
-        document_name: 'Current Driving License',
-        document_type: 'Existing License',
-        file_url: '/documents/license-priya-002.jpg',
-        file_type: 'image',
-        status: 'approved',
-        remarks: 'Valid license with no traffic violations recorded.',
-        reviewed_by: 'Officer Bandara',
-        reviewed_at: '2024-01-15T12:30:00',
-        uploaded_at: '2024-01-15T08:50:00'
-      },
-      {
-        id: 'DOC-007',
-        appointment_id: 'APT-002',
-        document_name: 'NIC Copy',
-        document_type: 'National Identity Card',
-        file_url: '/documents/nic-priya-002.jpg',
-        file_type: 'image',
-        status: 'pending',
-        remarks: '',
-        uploaded_at: '2024-01-15T08:55:00'
-      }
-    ]
-  },
-  {
-    id: 'APT-003',
-    citizen_id: 'C003',
-    service_id: 'S003',
-    officer_id: 'O003',
-    status: 'confirmed',
-    date_time: '2024-01-17T14:00:00',
-    documents_json: '["birth_report", "marriage_cert", "parent_nics"]',
-    qr_code: 'QR-APT-003',
-    reference_no: 'REF-003',
-    appointment_remarks: 'Birth certificate application for newborn child. All hospital documentation ready.',
-    citizenName: 'Saman Kumara',
-    serviceName: 'Birth Certificate Application',
-    departmentName: 'Registrar General\'s Department',
-    officerName: 'Kamala Dissanayake',
-    appointmentDate: '2024-01-17',
-    appointmentTime: '02:00 PM',
-    citizenPhone: '+94 75 555 1234',
-    citizenEmail: 'saman.kumara@email.com',
-    citizenNIC: '198712345678',
-    documents: [
-      {
-        id: 'DOC-008',
-        appointment_id: 'APT-003',
-        document_name: 'Hospital Birth Report',
-        document_type: 'Official Birth Report',
-        file_url: '/documents/birth-report-003.pdf',
-        file_type: 'pdf',
-        status: 'approved',
-        remarks: 'Official birth report from Castle Street Hospital. All details verified with hospital records.',
-        reviewed_by: 'Registrar Officer',
-        reviewed_at: '2024-01-16T09:30:00',
-        uploaded_at: '2024-01-16T08:30:00'
-      },
-      {
-        id: 'DOC-009',
-        appointment_id: 'APT-003',
-        document_name: 'Parents Marriage Certificate',
-        document_type: 'Marriage Certificate',
-        file_url: '/documents/marriage-cert-003.pdf',
-        file_type: 'pdf',
-        status: 'rejected',
-        remarks: 'Certificate appears to be damaged and text is unclear. Please provide certified copy from Registrar General\'s office.',
-        reviewed_by: 'Officer Mendis',
-        reviewed_at: '2024-01-16T13:15:00',
-        uploaded_at: '2024-01-16T09:35:00'
-      },
-      {
-        id: 'DOC-010',
-        appointment_id: 'APT-003',
-        document_name: 'Father\'s NIC',
-        document_type: 'National Identity Card',
-        file_url: '/documents/father-nic-003.jpg',
-        file_type: 'image',
-        status: 'approved',
-        remarks: 'Clear copy, all details visible and verified.',
-        reviewed_by: 'Officer Mendis',
-        reviewed_at: '2024-01-16T13:20:00',
-        uploaded_at: '2024-01-16T09:40:00'
-      },
-      {
-        id: 'DOC-011',
-        appointment_id: 'APT-003',
-        document_name: 'Mother\'s NIC',
-        document_type: 'National Identity Card',
-        file_url: '/documents/mother-nic-003.jpg',
-        file_type: 'image',
-        status: 'approved',
-        remarks: 'Clear copy, all details visible and verified.',
-        reviewed_by: 'Officer Mendis',
-        reviewed_at: '2024-01-16T13:25:00',
-        uploaded_at: '2024-01-16T09:45:00'
-      }
-    ]
-  }
-];
+interface BackendAppointmentShape {
+  id?: string; appointmentId?: string; userId?: string; citizen_id?: string; serviceId?: string; service_id?: string; officerId?: string; officer_id?: string;
+  status?: string; appointmentDate?: string; date_time?: string; appointment_date?: string; appointmentTime?: string; appointment_time?: string;
+  requiredDocuments?: string[]; qrCode?: string; qr_code?: string; reference?: string; reference_no?: string; notes?: string; appointment_remarks?: string;
+  citizenName?: string; citizen?: { fullName?: string; contactNumber?: string; email?: string; nic?: string };
+  serviceName?: string; service?: { serviceName?: string; department?: { departmentName?: string } };
+  departmentName?: string; officerName?: string; officer?: { firstName?: string };
+}
 
-// Function to get appointment by ID (for demo purposes)
-const getAppointmentById = (id) => {
-  return mockAppointments.find(apt => apt.id === id) || mockAppointments[0];
+const mapBackendAppointment = (apt: BackendAppointmentShape): AppointmentWithDocuments => {
+  const date = new Date(apt.appointmentDate || apt.date_time || apt.appointment_date || new Date());
+  const time = apt.appointmentTime || apt.appointment_time || apt.date_time;
+  return {
+  id: (apt.appointmentId || apt.id || 'APT') as string,
+    citizen_id: apt.userId || apt.citizen_id || '',
+    service_id: apt.serviceId || apt.service_id || '',
+    officer_id: apt.officerId || apt.officer_id || '',
+  status: (apt.status as Appointment['status']) || 'scheduled',
+    date_time: apt.appointmentDate || apt.date_time || date.toISOString(),
+    documents_json: JSON.stringify(apt.requiredDocuments || []),
+    qr_code: apt.qrCode || apt.qr_code || '',
+  reference_no: (apt.reference || apt.reference_no || apt.appointmentId || apt.id || 'REF') as string,
+    appointment_remarks: apt.notes || apt.appointment_remarks,
+    citizenName: apt.citizenName || apt.citizen?.fullName || 'Citizen',
+    serviceName: apt.serviceName || apt.service?.serviceName || 'Service',
+    departmentName: apt.departmentName || apt.service?.department?.departmentName || 'Department',
+    officerName: apt.officerName || apt.officer?.firstName || 'Officer',
+    appointmentDate: date.toISOString().split('T')[0],
+    appointmentTime: time ? new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+    citizenPhone: apt.citizen?.contactNumber || '+94',
+    citizenEmail: apt.citizen?.email || 'unknown@gov.lk',
+    citizenNIC: apt.citizen?.nic || 'N/A',
+    documents: [],
+  };
 };
 
 export const AppointmentDetails: React.FC = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
   const navigate = useNavigate();
 
-  // Get the specific appointment based on URL parameter
-  const selectedAppointment = getAppointmentById(appointmentId);
-  const [appointment, setAppointment] = useState<AppointmentWithDocuments>(selectedAppointment);
-  const [appointmentRemarks, setAppointmentRemarks] = useState(appointment.appointment_remarks || '');
+  const [appointment, setAppointment] = useState<AppointmentWithDocuments | null>(null);
+  const [appointmentRemarks, setAppointmentRemarks] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadAppointment = useCallback(async () => {
+    if (!appointmentId) return;
+    setLoading(true); setError(null);
+    const { data, error: err } = await api.getAdminAppointments();
+    if (err) setError(err);
+    else if (Array.isArray(data)) {
+      const found = data.find((a: BackendAppointmentShape) => (a.appointmentId || a.id) === appointmentId);
+      if (found) {
+        const mapped = mapBackendAppointment(found);
+        setAppointment(mapped);
+        setAppointmentRemarks(mapped.appointment_remarks || '');
+      } else setError('Appointment not found');
+    }
+    setLoading(false);
+  }, [appointmentId]);
+
+  useEffect(() => { loadAppointment(); }, [loadAppointment]);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium";
@@ -293,12 +133,9 @@ export const AppointmentDetails: React.FC = () => {
     setIsUpdating(true);
     try {
       // In a real app, this would make an API call
-      const newStatus = action === 'approve' ? 'completed' : 'cancelled';
-      setAppointment(prev => ({
-        ...prev,
-        status: newStatus,
-        appointment_remarks: appointmentRemarks
-      }));
+  if (!appointment) return;
+  const newStatus = action === 'approve' ? 'completed' : 'cancelled';
+  setAppointment({ ...appointment, status: newStatus, appointment_remarks: appointmentRemarks });
       
       console.log(`Appointment ${action}d with remarks:`, appointmentRemarks);
       
@@ -317,10 +154,8 @@ export const AppointmentDetails: React.FC = () => {
     setIsUpdating(true);
     try {
       // In a real app, this would make an API call
-      setAppointment(prev => ({
-        ...prev,
-        appointment_remarks: appointmentRemarks
-      }));
+  if (!appointment) return;
+  setAppointment({ ...appointment, appointment_remarks: appointmentRemarks });
       console.log('Remarks saved:', appointmentRemarks);
     } catch (error) {
       console.error('Error saving remarks:', error);
@@ -329,9 +164,9 @@ export const AppointmentDetails: React.FC = () => {
     }
   };
 
-  const pendingDocuments = appointment.documents?.filter(doc => doc.status === 'pending').length || 0;
-  const approvedDocuments = appointment.documents?.filter(doc => doc.status === 'approved').length || 0;
-  const rejectedDocuments = appointment.documents?.filter(doc => doc.status === 'rejected').length || 0;
+  const pendingDocuments = appointment?.documents?.filter((doc) => doc.status === 'pending').length || 0;
+  const approvedDocuments = appointment?.documents?.filter((doc) => doc.status === 'approved').length || 0;
+  const rejectedDocuments = appointment?.documents?.filter((doc) => doc.status === 'rejected').length || 0;
 
   return (
     <div className="space-y-6">
@@ -348,10 +183,14 @@ export const AppointmentDetails: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Appointment Details</h1>
-            <p className="text-gray-600">{appointment.reference_no} - Document Verification</p>
+            <p className="text-gray-600">{appointment?.reference_no} - Document Verification</p>
           </div>
         </div>
       </div>
+      {loading && <div className="p-4 bg-gray-50 border rounded text-sm">Loading appointment...</div>}
+      {error && <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+      {!loading && !error && appointment && (
+        <>
 
       {/* Appointment Information - Top Section */}
       <Card>
@@ -587,6 +426,8 @@ export const AppointmentDetails: React.FC = () => {
           </Card>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

@@ -77,7 +77,8 @@ export interface Appointment {
   citizen_id: string;
   service_id: string;
   officer_id: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  // Backend uses: scheduled | confirmed | completed | cancelled (plus we keep legacy pending/no-show for compatibility)
+  status: 'scheduled' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
   date_time: string;
   documents_json: string;
   qr_code: string;

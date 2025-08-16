@@ -165,6 +165,30 @@ export const api = {
   
   // Admin appointments (scoped by role)
   getAdminAppointments: () => apiRequest('/admin/appointments'),
+  createAdminAppointment: (data: {
+    userId: string;
+    departmentId: string;
+    serviceId: string;
+    appointmentDate: string; // YYYY-MM-DD
+    appointmentTime: string; // HH:mm
+    notes?: string;
+  }) =>
+    apiRequest('/admin/appointments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateAdminAppointment: (appointmentId: string, data: {
+    status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+    notes?: string;
+  }) =>
+    apiRequest(`/admin/appointments/${appointmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteAdminAppointment: (appointmentId: string) =>
+    apiRequest(`/admin/appointments/${appointmentId}`, {
+      method: 'DELETE',
+    }),
   
   // Admin users management (Super Admin only)
   getAdminUsers: () => apiRequest('/admin/admins'),
@@ -226,4 +250,8 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  // Feedback (NOTE: Endpoints not present in current API docs; implemented optimistically.)
+  getFeedback: () => apiRequest('/admin/feedback'),
+  getFeedbackAnalytics: () => apiRequest('/admin/feedback/analytics'),
 };

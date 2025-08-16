@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Star, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  MessageSquare,
+  Star,
   Search,
   Eye,
   Calendar,
@@ -12,8 +12,7 @@ import {
   RotateCcw,
   ThumbsUp,
   ThumbsDown,
-  AlertTriangle,
-  Target
+  AlertTriangle
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -24,131 +23,118 @@ import { Table } from '../components/ui/Table';
 import { StatCard } from '../components/ui/StatCard';
 import { useAuthStore } from '../store/authStore';
 import { Feedback as FeedbackType } from '../types';
+import { api } from '../utils/api';
 
-interface FeedbackWithDetails extends FeedbackType {
-  citizenName: string;
-  serviceName: string;
-  departmentName: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  feedbackDate: string;
+interface FeedbackWithDerived extends FeedbackType {
+  citizenName?: string;
+  serviceName?: string;
+  departmentName?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  feedbackDate?: string; // fallback using createdAt if provided by API in future
   sentiment: 'positive' | 'neutral' | 'negative';
 }
 
-// Mock feedback data
-const mockFeedback: FeedbackWithDetails[] = [
-  {
-    id: 'FB-001',
-    appointment_id: 'APT-001',
-    rating: 5,
-    comments: 'Excellent service! The passport application process was smooth and the officer was very helpful. No waiting time and all documents were processed efficiently.',
-    citizenName: 'Kasun Perera',
-    serviceName: 'Passport Application',
-    departmentName: 'Immigration & Emigration',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '09:00 AM',
-    feedbackDate: '2024-01-15',
-    sentiment: 'positive'
-  },
-  {
-    id: 'FB-002',
-    appointment_id: 'APT-002',
-    rating: 4,
-    comments: 'Good service overall. The process was clear and the staff was professional. Only minor delay but within acceptable limits.',
-    citizenName: 'Amara Fernando',
-    serviceName: 'Birth Certificate',
-    departmentName: 'Registrar General',
-    appointmentDate: '2024-01-15',
-    appointmentTime: '10:30 AM',
-    feedbackDate: '2024-01-15',
-    sentiment: 'positive'
-  },
-  {
-    id: 'FB-003',
-    appointment_id: 'APT-003',
-    rating: 3,
-    comments: 'Average experience. The service was okay but there was some confusion about the required documents initially.',
-    citizenName: 'Priya Jayawardena',
-    serviceName: 'License Renewal',
-    departmentName: 'Motor Traffic',
-    appointmentDate: '2024-01-14',
-    appointmentTime: '02:00 PM',
-    feedbackDate: '2024-01-14',
-    sentiment: 'neutral'
-  },
-  {
-    id: 'FB-004',
-    appointment_id: 'APT-004',
-    rating: 2,
-    comments: 'Not satisfied with the service. Had to wait longer than expected and the process was not clearly explained.',
-    citizenName: 'Ruwan Dissanayake',
-    serviceName: 'Tax Registration',
-    departmentName: 'Inland Revenue',
-    appointmentDate: '2024-01-16',
-    appointmentTime: '11:00 AM',
-    feedbackDate: '2024-01-16',
-    sentiment: 'negative'
-  },
-  {
-    id: 'FB-005',
-    appointment_id: 'APT-005',
-    rating: 1,
-    comments: 'Very poor service. The officer was not available at the scheduled time and no proper explanation was given.',
-    citizenName: 'Lakshmi Rajapakse',
-    serviceName: 'Income Certificate',
-    departmentName: 'Grama Niladhari',
-    appointmentDate: '2024-01-14',
-    appointmentTime: '04:30 PM',
-    feedbackDate: '2024-01-14',
-    sentiment: 'negative'
-  }
-];
-
-// Feedback statistics
-const feedbackStats = {
-  totalFeedback: 1456,
-  averageRating: 4.1,
-  positiveFeedback: 892,
-  neutralFeedback: 324,
-  negativeFeedback: 240,
-  responseRate: 87.3,
-  satisfactionTrend: '+12%',
-  mostRatedService: 'Passport Application',
-  departmentRatings: [
-    { department: 'Immigration & Emigration', rating: 4.5, count: 324 },
-    { department: 'Motor Traffic', rating: 4.2, count: 298 },
-    { department: 'Registrar General', rating: 4.0, count: 267 },
-    { department: 'Inland Revenue', rating: 3.8, count: 234 },
-    { department: 'Grama Niladhari', rating: 3.9, count: 189 }
-  ]
-};
+// Local statistics derived from current dataset
+interface LocalFeedbackStats {
+  total: number;
+  averageRating: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
 
 export const Feedback: React.FC = () => {
   const user = useAuthStore((state) => state.user);
-  const isAdmin = user?.role === 'admin';
-  
-  const [feedback, setFeedback] = useState<FeedbackWithDetails[]>(mockFeedback);
-  const [filteredFeedback, setFilteredFeedback] = useState<FeedbackWithDetails[]>(mockFeedback);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
+  const [feedback, setFeedback] = useState<FeedbackWithDerived[]>([]);
+  const [filteredFeedback, setFilteredFeedback] = useState<FeedbackWithDerived[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [sentimentFilter, setSentimentFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackWithDetails | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackWithDerived | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<LocalFeedbackStats>({ total: 0, averageRating: 0, positive: 0, neutral: 0, negative: 0 });
+
+  // Map backend feedback shape (currently unspecified in API docs) to UI requirements.
+  const deriveSentiment = (rating: number): 'positive' | 'neutral' | 'negative' => {
+    if (rating >= 4) return 'positive';
+    if (rating === 3) return 'neutral';
+    return 'negative';
+  };
+
+  const computeStats = useCallback((items: FeedbackWithDerived[]): LocalFeedbackStats => {
+    if (!items.length) return { total: 0, averageRating: 0, positive: 0, neutral: 0, negative: 0 };
+    const total = items.length;
+    const sum = items.reduce((acc, f) => acc + (f.rating || 0), 0);
+    const positive = items.filter(f => f.sentiment === 'positive').length;
+    const neutral = items.filter(f => f.sentiment === 'neutral').length;
+    const negative = items.filter(f => f.sentiment === 'negative').length;
+    return { total, averageRating: parseFloat((sum / total).toFixed(2)), positive, neutral, negative };
+  }, []);
+
+  const loadFeedback = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await api.getFeedback();
+    if (err) {
+      setError(err);
+      setLoading(false);
+      return;
+    }
+    // Assume data is an array; enrich with derived fields.
+    // Define minimal backend feedback shape to avoid pervasive any usage.
+  interface BackendCitizen { fullName?: string; name?: string; }
+  interface BackendDepartment { name?: string; }
+  interface BackendService { serviceName?: string; name?: string; department?: BackendDepartment; }
+  interface BackendAppointment { appointmentDate?: string; appointmentTime?: string; date_time?: string; citizen?: BackendCitizen; service?: BackendService; }
+  interface BackendFeedback { id: string; appointment_id: string; rating: number; comments: string; appointment?: BackendAppointment; createdAt?: string; updatedAt?: string; }
+    const arr: BackendFeedback[] = Array.isArray(data) ? (data as BackendFeedback[]) : [];
+    const mapped: FeedbackWithDerived[] = arr.map((f: BackendFeedback) => {
+  const appointment: BackendAppointment = f.appointment || {};
+  const service: BackendService = appointment.service || {};
+  const department: BackendDepartment = service.department || {};
+      const appointmentDateISO: string = appointment.appointmentDate || appointment.date_time || '';
+      const appointmentTimeISO: string = appointment.appointmentTime || '';
+      const dateObj = appointmentDateISO ? new Date(appointmentDateISO) : null;
+      const timeObj = appointmentTimeISO ? new Date(appointmentTimeISO) : null;
+      return {
+        ...f,
+        citizenName: appointment.citizen?.fullName || appointment.citizen?.name || 'Citizen',
+        serviceName: service.serviceName || service.name || 'Service',
+        departmentName: department.name || 'Department',
+        appointmentDate: dateObj ? dateObj.toISOString().split('T')[0] : undefined,
+        appointmentTime: timeObj ? timeObj.toISOString().split('T')[1]?.substring(0, 5) : undefined,
+        feedbackDate: f.createdAt || f.updatedAt,
+        sentiment: deriveSentiment(f.rating || 0),
+      } as FeedbackWithDerived;
+    });
+    setFeedback(mapped);
+    setFilteredFeedback(mapped);
+    setStats(computeStats(mapped));
+    setLoading(false);
+  }, [computeStats]);
+
+  useEffect(() => { loadFeedback(); }, [loadFeedback]);
 
   // Filter feedback based on search and filters
   useEffect(() => {
-    let filtered = feedback;
+  let filtered = feedback;
 
     // Search filter
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(fb =>
-        fb.citizenName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fb.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fb.departmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fb.comments.toLowerCase().includes(searchTerm.toLowerCase())
+        (fb.citizenName || '').toLowerCase().includes(term) ||
+        (fb.serviceName || '').toLowerCase().includes(term) ||
+        (fb.departmentName || '').toLowerCase().includes(term) ||
+        (fb.comments || '').toLowerCase().includes(term)
       );
     }
 
@@ -175,8 +161,10 @@ export const Feedback: React.FC = () => {
       switch (dateFilter) {
         case 'today': {
           filtered = filtered.filter(fb => {
-            const fbDate = new Date(fb.feedbackDate);
-            return fbDate.toDateString() === today.toDateString();
+            const fbDateStr = fb.feedbackDate;
+            if (!fbDateStr) return false;
+            const fbDate = new Date(fbDateStr);
+            return !isNaN(fbDate.getTime()) && fbDate.toDateString() === today.toDateString();
           });
           break;
         }
@@ -184,8 +172,10 @@ export const Feedback: React.FC = () => {
           const oneWeekAgo = new Date(today);
           oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
           filtered = filtered.filter(fb => {
-            const fbDate = new Date(fb.feedbackDate);
-            return fbDate >= oneWeekAgo && fbDate <= today;
+            const fbDateStr = fb.feedbackDate;
+            if (!fbDateStr) return false;
+            const fbDate = new Date(fbDateStr);
+            return !isNaN(fbDate.getTime()) && fbDate >= oneWeekAgo && fbDate <= today;
           });
           break;
         }
@@ -193,8 +183,10 @@ export const Feedback: React.FC = () => {
           const oneMonthAgo = new Date(today);
           oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
           filtered = filtered.filter(fb => {
-            const fbDate = new Date(fb.feedbackDate);
-            return fbDate >= oneMonthAgo && fbDate <= today;
+            const fbDateStr = fb.feedbackDate;
+            if (!fbDateStr) return false;
+            const fbDate = new Date(fbDateStr);
+            return !isNaN(fbDate.getTime()) && fbDate >= oneMonthAgo && fbDate <= today;
           });
           break;
         }
@@ -242,7 +234,7 @@ export const Feedback: React.FC = () => {
     }
   };
 
-  const handleViewFeedback = (feedback: FeedbackWithDetails) => {
+  const handleViewFeedback = (feedback: FeedbackWithDerived) => {
     setSelectedFeedback(feedback);
     setIsViewModalOpen(true);
   };
@@ -254,9 +246,10 @@ export const Feedback: React.FC = () => {
 
   const columns = [
     {
+      key: 'citizenName',
       header: 'Citizen',
       accessorKey: 'citizenName',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <div>
           <div className="font-medium">{row.citizenName}</div>
           <div className="text-sm text-gray-500">{row.feedbackDate}</div>
@@ -264,9 +257,10 @@ export const Feedback: React.FC = () => {
       )
     },
     {
+      key: 'serviceName',
       header: 'Service',
       accessorKey: 'serviceName',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <div>
           <div className="font-medium">{row.serviceName}</div>
           <div className="text-sm text-gray-500">{row.departmentName}</div>
@@ -274,9 +268,10 @@ export const Feedback: React.FC = () => {
       )
     },
     {
+      key: 'rating',
       header: 'Rating',
       accessorKey: 'rating',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <div className="flex items-center space-x-2">
           <div className="flex">{getRatingStars(row.rating)}</div>
           <span className="text-sm font-medium">{row.rating}/5</span>
@@ -284,9 +279,10 @@ export const Feedback: React.FC = () => {
       )
     },
     {
+      key: 'sentiment',
       header: 'Sentiment',
       accessorKey: 'sentiment',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <div className="flex items-center space-x-2">
           {getSentimentIcon(row.sentiment)}
           <span className={getSentimentBadge(row.sentiment)}>
@@ -296,18 +292,20 @@ export const Feedback: React.FC = () => {
       )
     },
     {
+      key: 'comments',
       header: 'Comments',
       accessorKey: 'comments',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <div className="max-w-xs">
           <p className="text-sm text-gray-600 truncate">{row.comments}</p>
         </div>
       )
     },
     {
+      key: 'actions',
       header: 'Actions',
       accessorKey: 'actions',
-      cell: (row: FeedbackWithDetails) => (
+      cell: (row: FeedbackWithDerived) => (
         <Button
           variant="ghost"
           size="sm"
@@ -353,62 +351,17 @@ export const Feedback: React.FC = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Feedback"
-          value={feedbackStats.totalFeedback.toLocaleString()}
-          icon={MessageSquare}
-          trend="+15%"
-          trendDirection="up"
-        />
-        <StatCard
-          title="Average Rating"
-          value={`${feedbackStats.averageRating}/5`}
-          icon={Star}
-          trend={feedbackStats.satisfactionTrend}
-          trendDirection="up"
-        />
-        <StatCard
-          title="Response Rate"
-          value={`${feedbackStats.responseRate}%`}
-          icon={Target}
-          trend="+5%"
-          trendDirection="up"
-        />
-        <StatCard
-          title="Positive Feedback"
-          value={`${Math.round((feedbackStats.positiveFeedback / feedbackStats.totalFeedback) * 100)}%`}
-          icon={ThumbsUp}
-          trend="+8%"
-          trendDirection="up"
-        />
+        <StatCard title="Total Feedback" value={stats.total} icon={MessageSquare} />
+        <StatCard title="Average Rating" value={`${stats.averageRating}/5`} icon={Star} />
+        <StatCard title="Positive" value={stats.positive} icon={ThumbsUp} color="green" />
+        <StatCard title="Negative" value={stats.negative} icon={ThumbsDown} color="red" />
       </div>
 
       {/* Sentiment Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title="Positive"
-          value={feedbackStats.positiveFeedback.toString()}
-          icon={ThumbsUp}
-          trend="+12%"
-          trendDirection="up"
-          className="border-green-200 bg-green-50"
-        />
-        <StatCard
-          title="Neutral"
-          value={feedbackStats.neutralFeedback.toString()}
-          icon={AlertTriangle}
-          trend="+3%"
-          trendDirection="up"
-          className="border-yellow-200 bg-yellow-50"
-        />
-        <StatCard
-          title="Negative"
-          value={feedbackStats.negativeFeedback.toString()}
-          icon={ThumbsDown}
-          trend="-18%"
-          trendDirection="down"
-          className="border-red-200 bg-red-50"
-        />
+        <StatCard title="Positive" value={stats.positive} icon={ThumbsUp} color="green" />
+        <StatCard title="Neutral" value={stats.neutral} icon={AlertTriangle} color="orange" />
+        <StatCard title="Negative" value={stats.negative} icon={ThumbsDown} color="red" />
       </div>
 
       {/* Filters and Search */}
@@ -439,7 +392,7 @@ export const Feedback: React.FC = () => {
               </label>
               <Select
                 value={ratingFilter}
-                onChange={setRatingFilter}
+                onChange={(e) => setRatingFilter((e.target as HTMLSelectElement).value)}
                 options={[
                   { value: 'all', label: 'All Ratings' },
                   { value: '5', label: '5 Stars' },
@@ -457,7 +410,7 @@ export const Feedback: React.FC = () => {
               </label>
               <Select
                 value={sentimentFilter}
-                onChange={setSentimentFilter}
+                onChange={(e) => setSentimentFilter((e.target as HTMLSelectElement).value)}
                 options={[
                   { value: 'all', label: 'All Sentiments' },
                   { value: 'positive', label: 'Positive' },
@@ -473,7 +426,7 @@ export const Feedback: React.FC = () => {
               </label>
               <Select
                 value={dateFilter}
-                onChange={setDateFilter}
+                onChange={(e) => setDateFilter((e.target as HTMLSelectElement).value)}
                 options={[
                   { value: 'all', label: 'All Time' },
                   { value: 'today', label: 'Today' },
@@ -490,7 +443,7 @@ export const Feedback: React.FC = () => {
                 </label>
                 <Select
                   value={departmentFilter}
-                  onChange={setDepartmentFilter}
+                  onChange={(e) => setDepartmentFilter((e.target as HTMLSelectElement).value)}
                   options={[
                     { value: 'all', label: 'All Departments' },
                     { value: 'Immigration & Emigration', label: 'Immigration & Emigration' },
@@ -517,19 +470,26 @@ export const Feedback: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.location.reload()}
+                onClick={() => loadFeedback()}
+                disabled={loading}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Refresh
+                {loading ? 'Loading...' : 'Refresh'}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table
-            data={filteredFeedback}
-            columns={columns}
-          />
+          {error && (
+            <div className="p-3 mb-4 rounded bg-red-50 text-red-700 text-sm">{error}</div>
+          )}
+          <Table data={filteredFeedback} columns={columns} />
+          {!loading && !error && !filteredFeedback.length && (
+            <p className="text-sm text-gray-500 mt-4">No feedback found.</p>
+          )}
+          {loading && (
+            <p className="text-sm text-gray-500 mt-4">Loading feedback...</p>
+          )}
         </CardContent>
       </Card>
 
@@ -637,18 +597,8 @@ export const Feedback: React.FC = () => {
           <div>
             <h4 className="font-semibold text-gray-900 mb-4">Department Performance</h4>
             <div className="space-y-3">
-              {feedbackStats.departmentRatings.map((dept, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{dept.department}</p>
-                    <p className="text-sm text-gray-500">{dept.count} feedback entries</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="flex">{getRatingStars(Math.round(dept.rating))}</div>
-                    <span className="font-semibold">{dept.rating}/5</span>
-                  </div>
-                </div>
-              ))}
+              {/* Placeholder: would display department aggregated ratings when backend analytics available */}
+              <p className="text-sm text-gray-500">Department performance analytics not available yet.</p>
             </div>
           </div>
 
@@ -656,10 +606,10 @@ export const Feedback: React.FC = () => {
           <div className="bg-green-50 p-4 rounded-lg">
             <h4 className="font-semibold text-green-900 mb-2">Key Insights</h4>
             <ul className="text-sm text-green-700 space-y-1">
-              <li>• Overall satisfaction improved by 12% this month</li>
-              <li>• Immigration & Emigration has the highest rating (4.5/5)</li>
-              <li>• Most common positive feedback: "Quick service and professional staff"</li>
-              <li>• Main improvement area: "Clear communication about document requirements"</li>
+              <li>• Average rating: {stats.averageRating}/5</li>
+              <li>• Positive share: {stats.total ? Math.round((stats.positive / stats.total) * 100) : 0}%</li>
+              <li>• Neutral share: {stats.total ? Math.round((stats.neutral / stats.total) * 100) : 0}%</li>
+              <li>• Negative share: {stats.total ? Math.round((stats.negative / stats.total) * 100) : 0}%</li>
             </ul>
           </div>
         </div>
