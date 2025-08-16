@@ -1,9 +1,8 @@
 export interface User {
-  userId?: string;
+  userId: string;
   email: string;
-  firstName?: string;
+  firstName: string;
   lastName?: string;
-  name?: string;
   role: 'ADMIN' | 'SUPER_ADMIN' | 'CITIZEN';
   assignedServices?: string[];
   isActive: boolean;
@@ -21,12 +20,23 @@ export interface User {
 }
 
 export interface Department {
-  id: string;
-  name: string;
+  departmentId: string;
+  departmentName: string;
   description: string;
-  created_by: string;
+  headOfficeAddress: {
+    street: string;
+    city: string;
+  };
+  contactInfo: {
+    phone: string;
+  };
+  operatingHours: {
+    [key: string]: string;
+  };
   created_at: string;
   services?: Service[];
+  // for backwards compatibility
+  name?: string;
 }
 
 export interface Service {
@@ -34,23 +44,26 @@ export interface Service {
   id?: string; // for backwards compatibility
   serviceName: string;
   description: string;
-  serviceCategory: string;
+  serviceCategory: 'licensing' | 'permits' | 'certificates' | 'registration' | 'tax' | 'social' | 'legal' | 'other';
   processingTimeDays?: number;
   feeAmount: number;
-  requiredDocuments: Record<string, boolean>;
+  requiredDocuments: {
+    usual: Record<string, boolean>;
+    other: string;
+  };
   eligibilityCriteria: string;
   onlineAvailable: boolean;
   appointmentRequired: boolean;
   maxCapacityPerSlot: number;
-  isActive?: boolean;
+  isActive: boolean;
+  operationalHours?: {
+    [key: string]: string[];
+  };
   createdAt?: string;
   updatedAt?: string;
   // Legacy fields for compatibility
-  department_id?: string;
-  name?: string;
   requirements_json?: string;
   duration_minutes?: number;
-  department?: Department;
 }
 
 export interface Officer {

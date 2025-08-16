@@ -26,8 +26,20 @@ export const useAppStore = create<AppState>((set) => ({
   appointments: [],
   analytics: null,
   loading: false,
-  setDepartments: (departments) => set({ departments }),
-  setServices: (services) => set({ services }),
+  setDepartments: (departments) =>
+    set({
+      departments: departments.map(department => ({
+        ...department,
+        departmentId: department.departmentId || (department as any).id,
+      })),
+    }),
+  setServices: (services) =>
+    set({
+      services: services.map(service => ({
+        ...service,
+        serviceId: service.serviceId || (service as any).id,
+      })),
+    }),
   setOfficers: (officers) => set({ officers }),
   setCitizens: (citizens) => set({ citizens }),
   setAppointments: (appointments) => set({ appointments }),

@@ -24,9 +24,7 @@ const serviceSchema = z.object({
     .min(1, 'Description is required')
     .min(10, 'Description must be at least 10 characters')
     .max(500, 'Description must be less than 500 characters'),
-  serviceCategory: z
-    .string()
-    .min(1, 'Service category is required'),
+  serviceCategory: z.enum(['licensing', 'permits', 'certificates', 'registration', 'tax', 'social', 'legal', 'other']),
   processingTimeDays: z
     .number()
     .min(1, 'Processing time must be at least 1 day')
@@ -35,6 +33,10 @@ const serviceSchema = z.object({
   feeAmount: z
     .number()
     .min(0, 'Fee amount cannot be negative'),
+  requiredDocuments: z.object({
+    usual: z.record(z.string(), z.boolean()),
+    other: z.string().optional(),
+  }).optional(),
   eligibilityCriteria: z
     .string()
     .min(1, 'Eligibility criteria is required')
@@ -45,19 +47,19 @@ const serviceSchema = z.object({
     .number()
     .min(1, 'Maximum capacity must be at least 1')
     .max(100, 'Maximum capacity cannot exceed 100'),
+  operationalHours: z.record(z.string(), z.array(z.string())).optional(),
 });
 
 type ServiceForm = z.infer<typeof serviceSchema>;
 
 const serviceCategories = [
   { value: 'licensing', label: 'Licensing' },
-  { value: 'certification', label: 'Certification' },
-  { value: 'registration', label: 'Registration' },
   { value: 'permits', label: 'Permits' },
-  { value: 'healthcare', label: 'Healthcare' },
-  { value: 'education', label: 'Education' },
-  { value: 'immigration', label: 'Immigration' },
-  { value: 'taxation', label: 'Taxation' },
+  { value: 'certificates', label: 'Certificates' },
+  { value: 'registration', label: 'Registration' },
+  { value: 'tax', label: 'Tax' },
+  { value: 'social', label: 'Social' },
+  { value: 'legal', label: 'Legal' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -74,13 +76,16 @@ const requiredDocumentsOptions = [
   { key: 'police_clearance', label: 'Police Clearance' },
 ];
 
+const availableTimes = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00'];
+const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 export const Services: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
-  const [requiredDocuments, setRequiredDocuments] = useState<Record<string, boolean>>({});
+  const [operationalHours, setOperationalHours] = useState<Record<string, string[]>>({});
   
   const { services, setServices } = useAppStore();
 
@@ -89,10 +94,26 @@ export const Services: React.FC = () => {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ServiceForm>({
     resolver: zodResolver(serviceSchema),
+    defaultValues: {
+      serviceName: '',
+      description: '',
+      serviceCategory: 'other',
+      processingTimeDays: 1,
+      feeAmount: 0,
+      eligibilityCriteria: '',
+      onlineAvailable: false,
+      appointmentRequired: true,
+      maxCapacityPerSlot: 10,
+      requiredDocuments: { usual: {}, other: '' },
+      operationalHours: {},
+    }
   });
+
+  const requiredDocuments = watch('requiredDocuments');
 
   // Load services from API
   const loadServices = useCallback(async () => {
@@ -122,68 +143,58 @@ export const Services: React.FC = () => {
 
   useEffect(() => {
     if (editingService) {
-      setValue('serviceName', editingService.serviceName || editingService.name || '');
-      setValue('description', editingService.description || '');
-      setValue('serviceCategory', editingService.serviceCategory || '');
-      setValue('processingTimeDays', editingService.processingTimeDays || 1);
-      setValue('feeAmount', editingService.feeAmount || 0);
-      setValue('eligibilityCriteria', editingService.eligibilityCriteria || '');
-      setValue('onlineAvailable', editingService.onlineAvailable || false);
-      setValue('appointmentRequired', editingService.appointmentRequired || true);
-      setValue('maxCapacityPerSlot', editingService.maxCapacityPerSlot || 10);
-      
-      // Set required documents
-      if (editingService.requiredDocuments) {
-        setRequiredDocuments(editingService.requiredDocuments);
-      } else if (editingService.requirements_json) {
-        // Handle legacy format
-        try {
-          const requirements = JSON.parse(editingService.requirements_json);
-          const docs: Record<string, boolean> = {};
-          if (Array.isArray(requirements)) {
-            requirements.forEach(req => {
-              docs[req.toLowerCase().replace(/\s+/g, '_')] = true;
-            });
-          }
-          setRequiredDocuments(docs);
-        } catch {
-          setRequiredDocuments({});
-        }
+      reset(editingService as any);
+      if (editingService.requiredDocuments && typeof editingService.requiredDocuments === 'object' && 'usual' in editingService.requiredDocuments) {
+        setValue('requiredDocuments', editingService.requiredDocuments as { usual: Record<string, boolean>; other: string });
+      } else {
+        setValue('requiredDocuments', { usual: {}, other: '' });
+      }
+
+      if (editingService?.operationalHours) {
+        setOperationalHours(editingService.operationalHours);
+      } else {
+        const initialHours: Record<string, string[]> = {};
+        daysOfWeek.forEach(day => {
+          initialHours[day] = [];
+        });
+        setOperationalHours(initialHours);
       }
     } else {
       reset();
-      setRequiredDocuments({});
+      const initialHours: Record<string, string[]> = {};
+      daysOfWeek.forEach(day => {
+        initialHours[day] = [];
+      });
+      setOperationalHours(initialHours);
     }
-  }, [editingService, setValue, reset]);
+  }, [editingService, reset, setValue]);
 
   const handleSave = async (data: ServiceForm) => {
     setLoading(true);
     try {
       const serviceData = {
         ...data,
-        requiredDocuments,
+        operationalHours,
       };
 
       if (editingService) {
-        // Update existing service
-        const serviceId = editingService.serviceId || editingService.id;
+        const serviceId = editingService.serviceId || (editingService as any).id;
         if (!serviceId) throw new Error('Service ID is missing');
         
-        const response = await api.updateService(serviceId, serviceData);
+        const response = await api.updateService(serviceId, serviceData as any);
         if (response.data) {
           const updatedServices = services.map(service => 
-            (service.serviceId || service.id) === serviceId 
-              ? { ...service, ...serviceData }
+            (service.serviceId || (service as any).id) === serviceId 
+              ? { ...service, ...response.data }
               : service
           );
-          setServices(updatedServices);
+          setServices(updatedServices as Service[]);
           toast.success('Service updated successfully');
         } else if (response.error) {
           throw new Error(response.error);
         }
       } else {
-        // Create new service
-        const response = await api.createService(serviceData);
+        const response = await api.createService(serviceData as any);
         if (response.data) {
           const newService = response.data as Service;
           setServices([...services, newService]);
@@ -196,7 +207,6 @@ export const Services: React.FC = () => {
       setIsModalOpen(false);
       setEditingService(null);
       reset();
-      setRequiredDocuments({});
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save service';
       toast.error(errorMessage);
@@ -218,13 +228,13 @@ export const Services: React.FC = () => {
     if (!deletingService) return;
 
     try {
-      const serviceId = deletingService.serviceId || deletingService.id;
+      const serviceId = deletingService.serviceId || (deletingService as any).id;
       if (!serviceId) throw new Error('Service ID is missing');
       
       const response = await api.deleteService(serviceId);
       if (response.status === 200 || response.status === 204) {
         const filtered = services.filter(service => 
-          (service.serviceId || service.id) !== serviceId
+          (service.serviceId || (service as any).id) !== serviceId
         );
         setServices(filtered);
         toast.success('Service deleted successfully');
@@ -240,10 +250,22 @@ export const Services: React.FC = () => {
   };
 
   const handleDocumentToggle = (docKey: string, checked: boolean) => {
-    setRequiredDocuments(prev => ({
-      ...prev,
-      [docKey]: checked
-    }));
+    const newUsual = { ...requiredDocuments?.usual, [docKey]: checked };
+    setValue('requiredDocuments', { ...requiredDocuments, usual: newUsual } as any);
+  };
+
+  const handleOtherDocumentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue('requiredDocuments', { ...requiredDocuments, other: e.target.value } as any);
+  };
+
+  const handleTimeSlotToggle = (day: string, time: string) => {
+    setOperationalHours(prev => {
+      const daySlots = prev[day] || [];
+      const newDaySlots = daySlots.includes(time)
+        ? daySlots.filter(t => t !== time)
+        : [...daySlots, time];
+      return { ...prev, [day]: newDaySlots };
+    });
   };
 
   const columns = [
@@ -254,7 +276,7 @@ export const Services: React.FC = () => {
         <div className="flex items-center space-x-2">
           <FileText className="h-5 w-5 text-primary-500" />
           <div>
-            <span className="font-medium">{service.serviceName || service.name}</span>
+            <span className="font-medium">{service.serviceName}</span>
             <p className="text-xs text-gray-500">{service.serviceCategory}</p>
           </div>
         </div>
@@ -274,7 +296,6 @@ export const Services: React.FC = () => {
       header: 'Fee',
       render: (service: Service) => (
         <div className="flex items-center space-x-1">
-          <DollarSign className="h-4 w-4 text-green-500" />
           <span className="font-medium">LKR {service.feeAmount?.toLocaleString() || '0'}</span>
         </div>
       ),
@@ -295,7 +316,7 @@ export const Services: React.FC = () => {
       render: (service: Service) => (
         <div className="flex items-center space-x-1">
           <Clock className="h-4 w-4 text-orange-500" />
-          <span>{service.processingTimeDays || service.duration_minutes || 'N/A'} {service.processingTimeDays ? 'days' : 'minutes'}</span>
+          <span>{service.processingTimeDays || (service as any).duration_minutes || 'N/A'} {service.processingTimeDays ? 'days' : 'minutes'}</span>
         </div>
       ),
     },
@@ -381,7 +402,7 @@ export const Services: React.FC = () => {
             <Table 
               data={services.map(service => ({ 
                 ...service, 
-                id: service.serviceId || service.id || '' 
+                id: service.serviceId || (service as any).id || '' 
               }))} 
               columns={columns as any} 
             />
@@ -396,12 +417,11 @@ export const Services: React.FC = () => {
           setIsModalOpen(false);
           setEditingService(null);
           reset();
-          setRequiredDocuments({});
         }}
         title={editingService ? 'Edit Service' : 'Add New Service'}
         size="lg"
       >
-        <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleSave, (errors) => console.error(errors))} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Service Name"
@@ -543,7 +563,7 @@ export const Services: React.FC = () => {
                 <label key={doc.key} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={requiredDocuments[doc.key] || false}
+                    checked={requiredDocuments?.usual?.[doc.key] || false}
                     onChange={(e) => handleDocumentToggle(doc.key, e.target.checked)}
                     disabled={loading}
                     className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
@@ -552,9 +572,43 @@ export const Services: React.FC = () => {
                 </label>
               ))}
             </div>
+            <Input
+              label="Other Documents"
+              value={requiredDocuments?.other || ''}
+              onChange={handleOtherDocumentsChange}
+              placeholder="e.g., A letter from your grandmother"
+              disabled={loading}
+            />
             <p className="text-xs text-gray-500">
               Select the documents that citizens need to provide for this service.
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Operational Hours
+            </label>
+            <div className="space-y-2 border rounded-md p-3">
+              {daysOfWeek.map(day => (
+                <div key={day} className="grid grid-cols-5 gap-2 items-center">
+                  <label className="text-sm font-medium col-span-1 capitalize">{day}</label>
+                  <div className="col-span-4 grid grid-cols-4 gap-2">
+                    {availableTimes.map(time => (
+                      <label key={time} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={operationalHours[day]?.includes(time) || false}
+                          onChange={() => handleTimeSlotToggle(day, time)}
+                          disabled={loading}
+                          className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                        />
+                        <span className="text-sm">{time}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 pt-4 border-t">
@@ -569,7 +623,6 @@ export const Services: React.FC = () => {
                 setIsModalOpen(false);
                 setEditingService(null);
                 reset();
-                setRequiredDocuments({});
               }}
             >
               Cancel
@@ -592,7 +645,7 @@ export const Services: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-medium text-gray-900">
-                Delete "{deletingService?.serviceName || deletingService?.name}"?
+                Delete "{deletingService?.serviceName}"?
               </h3>
               <p className="text-sm text-gray-600">
                 This action cannot be undone. All appointments for this service will also be affected.
